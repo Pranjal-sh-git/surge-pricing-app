@@ -1,0 +1,21 @@
+# Node
+node_modules/
+dist/
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Large Data Files
+*.csv
+*.txt
