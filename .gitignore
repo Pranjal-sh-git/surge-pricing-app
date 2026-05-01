@@ -19,3 +19,4 @@ Thumbs.db
 # Large Data Files
 *.csv
 *.txt
+!requirements.txt
