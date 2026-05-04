@@ -6,6 +6,7 @@ import { CustomCursor } from './components/CustomCursor';
 import { HeroSection } from './components/HeroSection';
 import { ScrollStory } from './components/ScrollStory';
 import { RideAppUI } from './components/RideAppUI';
+import { ContactSection } from './components/ContactSection';
 import { Footer } from './components/Footer';
 import { useTheme } from './contexts/ThemeContext';
 
@@ -14,7 +15,7 @@ const navItems = [
   { id: 'hero',    label: 'Home' },
   { id: 'story',   label: 'How It Works' },
   { id: 'ride',    label: 'Get a Ride' },
-  { id: 'footer',  label: 'Contact' },
+  { id: 'contact', label: 'Contact' },
 ];
 
 const GlassNavbar = () => {
@@ -146,12 +147,18 @@ function App() {
     demand, setDemand,
     supply, setSupply,
     distance, setDistance,
+    pickupCoords, dropoffCoords,
+    pickupAddress, dropoffAddress,
+    updateCoordinates,
     surgeMultiplier,
     totalFare,
     baseFare,
     ratePerKm,
     loading,
     error,
+    weather,
+    simulateRain,
+    setSimulateRain,
     fetchSurgeEstimate,
   } = useSurgeCalculation();
 
@@ -193,22 +200,35 @@ function App() {
           style={{ background: 'linear-gradient(to bottom, #121212, #0e0e0e)' }} />
 
         {/* ── RIDE APP ── */}
-        <div id="ride">
           <RideAppUI
             demand={demand}   setDemand={setDemand}
             supply={supply}   setSupply={setSupply}
             distance={distance} setDistance={setDistance}
+            pickupCoords={pickupCoords}
+            dropoffCoords={dropoffCoords}
+            pickupAddress={pickupAddress}
+            dropoffAddress={dropoffAddress}
+            updateCoordinates={updateCoordinates}
             surgeMultiplier={surgeMultiplier}
             totalFare={totalFare}
             baseFare={baseFare}
             ratePerKm={ratePerKm}
             loading={loading}
             error={error}
+            weather={weather}
+            simulateRain={simulateRain}
+            setSimulateRain={setSimulateRain}
             fetchSurgeEstimate={fetchSurgeEstimate}
           />
-        </div>
 
-        {/* ── Fade: Ride App → Footer ── */}
+        {/* ── Fade: Ride App → Contact ── */}
+        <div className="h-20 pointer-events-none"
+          style={{ background: 'linear-gradient(to bottom, #0e0e0e, #121212)' }} />
+
+        {/* ── CONTACT ── */}
+        <ContactSection />
+
+        {/* ── Fade: Contact → Footer ── */}
         <div className="h-20 pointer-events-none"
           style={{ background: 'linear-gradient(to bottom, #121212, #0a0a0a)' }} />
 

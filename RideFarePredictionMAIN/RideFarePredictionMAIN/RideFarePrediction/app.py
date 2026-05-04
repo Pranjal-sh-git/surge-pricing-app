@@ -90,12 +90,17 @@ def predict_surge_endpoint():
         name_encoded = int(data.get('name_encoded', data.get('ride_tier', 0)))
 
         # ── Demand intensity → adjust price signal ─────────────
-        # Frontend sends demand (1-10), we use it to modulate the price input
         demand = data.get('demand')
         if demand is not None:
             demand = float(demand)
-            # Scale price by demand: higher demand → higher price signal to model
             price = price * (1 + (demand - 5) * 0.1)
+
+        # ── Weather impact → adjust price signal ───────────────
+        # Simulate surge impact of rain/snow if not already in model columns
+        weather_data = data.get('weather')
+        if weather_data and weather_data.get('isBad'):
+            # Bad weather increases price signal (and thus predicted surge) by ~20%
+            price = price * 1.2
 
         # ── Build feature dict for model ───────────────────────
         model_input = {
