@@ -94,8 +94,8 @@ export const RideAppUI = ({
           <div className="w-full lg:w-[380px] flex flex-col order-1 lg:order-2 overflow-y-auto">
 
             {/* Location inputs */}
-            <div className="p-4 border-b border-white/5 flex-shrink-0">
-              <div className="relative space-y-2">
+            <div className="p-3 border-b border-white/5 flex-shrink-0">
+              <div className="relative space-y-1.5">
                 <div className="absolute left-[15px] top-[36px] bottom-[36px] w-[2px] bg-white/10" />
 
                 {/* Pickup search */}
@@ -120,9 +120,9 @@ export const RideAppUI = ({
 
 
             {/* Route stats */}
-            <div className="p-4 border-b border-white/5 flex-shrink-0">
+            <div className="p-3 border-b border-white/5 flex-shrink-0">
               <div className="grid grid-cols-2 gap-2">
-                <div className="bg-white/5 rounded-xl p-3">
+                <div className="bg-white/5 rounded-xl p-2.5">
                   <div className="flex items-center gap-1 text-gray-500 text-[10px] uppercase tracking-wider font-bold mb-1">
                     <MapPin size={10} /> Distance
                   </div>
@@ -131,7 +131,7 @@ export const RideAppUI = ({
                   </div>
                   {distance > 0 && <div className="text-[10px] text-gray-600 mt-0.5">via shortest road</div>}
                 </div>
-                <div className="bg-white/5 rounded-xl p-3">
+                <div className="bg-white/5 rounded-xl p-2.5">
                   <div className="flex items-center gap-1 text-gray-500 text-[10px] uppercase tracking-wider font-bold mb-1">
                     <Clock size={10} /> ETA
                   </div>
@@ -144,8 +144,8 @@ export const RideAppUI = ({
             </div>
 
             {/* ── Demand slider ── */}
-            <div className="p-4 border-b border-white/5 bg-white/[0.02]">
-              <div className="flex items-center justify-between mb-4">
+            <div className="p-3 border-b border-white/5 bg-white/[0.02]">
+              <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <Activity size={16} className="text-[#1DB954]" />
                   <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Demand Intensity</span>
@@ -165,8 +165,8 @@ export const RideAppUI = ({
             </div>
 
             {/* Weather Conditions */}
-            <div className="p-4 border-b border-white/5 bg-white/[0.02]">
-              <div className="flex items-center justify-between mb-4">
+            <div className="p-3 border-b border-white/5 bg-white/[0.02]">
+              <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <CloudRain size={16} className="text-[#3b82f6]" />
                   <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Weather Analysis</span>
@@ -214,8 +214,8 @@ export const RideAppUI = ({
             </div>
 
             {/* ── SURGE METER (always visible) ── */}
-            <div className="p-4 border-b border-white/5 flex-shrink-0">
-              <div className="flex items-center justify-between mb-2">
+            <div className="p-3 border-b border-white/5 flex-shrink-0">
+              <div className="flex items-center justify-between mb-1.5">
                 <span className="text-gray-500 text-[10px] uppercase tracking-wider font-bold flex items-center gap-1">
                   <Zap size={10} /> Surge Multiplier
                 </span>
@@ -268,7 +268,7 @@ export const RideAppUI = ({
             </div>
 
             {/* ── Fare breakdown (always visible once we have data) ── */}
-            <div className="p-4 flex-shrink-0">
+            <div className="p-3 flex-shrink-0">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-gray-500 text-[10px] uppercase tracking-wider font-bold flex items-center gap-1">
                   <CreditCard size={10} /> Estimated Fare
@@ -310,7 +310,7 @@ export const RideAppUI = ({
               <button
                 onClick={handleCheck}
                 disabled={loading || distance === 0}
-                className="w-full flex items-center justify-center gap-2 font-bold text-sm py-3 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-2 font-bold text-sm py-2.5 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{
                   background: loading ? '#333' : '#1DB954',
                   color: loading ? '#999' : '#000',
