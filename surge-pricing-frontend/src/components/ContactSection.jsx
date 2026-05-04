@@ -16,7 +16,7 @@ export const ContactSection = () => {
   };
 
   return (
-    <section id="contact" className="relative w-full py-12 lg:py-16 px-4 overflow-hidden bg-[#121212]">
+    <section id="contact" className="relative w-full py-12 lg:py-16 px-4 overflow-hidden bg-[#121212] scroll-mt-28">
       {/* Background Orbs */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#1DB954]/5 rounded-full blur-[120px] -z-10" />
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-[#00f3ff]/5 rounded-full blur-[120px] -z-10" />
