@@ -14,7 +14,7 @@ import { useTheme } from './contexts/ThemeContext';
 const navItems = [
   { id: 'hero',    label: 'Home' },
   { id: 'story',   label: 'How It Works' },
-  { id: 'ride',    label: 'Get a Ride' },
+  { id: 'ride',    label: 'Plan Journey' },
   { id: 'contact', label: 'Contact' },
 ];
 
@@ -22,13 +22,10 @@ const GlassNavbar = () => {
   const [activeId, setActiveId] = useState('hero');
   const [scrolled, setScrolled] = useState(false);
 
-  // Track which section is in view
   const handleScroll = useCallback(() => {
     setScrolled(window.scrollY > 60);
-
     const viewportCenter = window.innerHeight / 3;
     let currentId = 'hero';
-
     for (const item of navItems) {
       const el = document.getElementById(item.id);
       if (!el) continue;
@@ -92,7 +89,6 @@ const GlassNavbar = () => {
                 : 'text-[#888] hover:text-white/80'
               }`}
           >
-            {/* Active indicator pill */}
             {activeId === item.id && (
               <motion.div
                 layoutId="nav-pill"
@@ -150,16 +146,14 @@ function App() {
     pickupCoords, dropoffCoords,
     pickupAddress, dropoffAddress,
     updateCoordinates,
-    surgeMultiplier,
-    totalFare,
-    baseFare,
-    ratePerKm,
-    loading,
-    error,
-    weather,
-    simulateRain,
-    setSimulateRain,
+    surgeMultiplier, totalFare, baseFare, ratePerKm,
+    loading, error,
+    weather, simulateRain, setSimulateRain,
     fetchSurgeEstimate,
+    // Multi-modal
+    activeMode, setActiveMode,
+    trainFare, trainEta, trainSurge,
+    flightFare, flightEta, flightSurge,
   } = useSurgeCalculation();
 
   const { theme } = useTheme();
@@ -199,27 +193,35 @@ function App() {
         <div className="h-24 pointer-events-none"
           style={{ background: 'linear-gradient(to bottom, #121212, #0e0e0e)' }} />
 
-        {/* ── RIDE APP ── */}
-          <RideAppUI
-            demand={demand}   setDemand={setDemand}
-            supply={supply}   setSupply={setSupply}
-            distance={distance} setDistance={setDistance}
-            pickupCoords={pickupCoords}
-            dropoffCoords={dropoffCoords}
-            pickupAddress={pickupAddress}
-            dropoffAddress={dropoffAddress}
-            updateCoordinates={updateCoordinates}
-            surgeMultiplier={surgeMultiplier}
-            totalFare={totalFare}
-            baseFare={baseFare}
-            ratePerKm={ratePerKm}
-            loading={loading}
-            error={error}
-            weather={weather}
-            simulateRain={simulateRain}
-            setSimulateRain={setSimulateRain}
-            fetchSurgeEstimate={fetchSurgeEstimate}
-          />
+        {/* ── PLAN JOURNEY (formerly "Get a Ride") ── */}
+        <RideAppUI
+          demand={demand}   setDemand={setDemand}
+          supply={supply}   setSupply={setSupply}
+          distance={distance} setDistance={setDistance}
+          pickupCoords={pickupCoords}
+          dropoffCoords={dropoffCoords}
+          pickupAddress={pickupAddress}
+          dropoffAddress={dropoffAddress}
+          updateCoordinates={updateCoordinates}
+          surgeMultiplier={surgeMultiplier}
+          totalFare={totalFare}
+          baseFare={baseFare}
+          ratePerKm={ratePerKm}
+          loading={loading}
+          error={error}
+          weather={weather}
+          simulateRain={simulateRain}
+          setSimulateRain={setSimulateRain}
+          fetchSurgeEstimate={fetchSurgeEstimate}
+          activeMode={activeMode}
+          setActiveMode={setActiveMode}
+          trainFare={trainFare}
+          trainEta={trainEta}
+          trainSurge={trainSurge}
+          flightFare={flightFare}
+          flightEta={flightEta}
+          flightSurge={flightSurge}
+        />
 
         {/* ── Fade: Ride App → Contact ── */}
         <div className="h-20 pointer-events-none"
