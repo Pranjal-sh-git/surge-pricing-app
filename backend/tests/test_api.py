@@ -24,13 +24,12 @@ def test_predict_negative_distance(client):
     assert 'distance_km must be positive' in data['message']
 
 def test_predict_surge_clamped(client):
-    """POST with distance_km: 100, demand: 10, price: 500 returns predicted_surge between 1.0 and 5.0"""
+    """POST with distance_km: 10, demand: 5, cab_type_encoded: 0, name_encoded: 0 returns predicted_surge and checks tier-based pricing"""
     payload = {
-        'distance_km': 100.0,
-        'demand': 10,
-        'price': 500.0,
+        'distance_km': 10.0,
+        'demand': 5,
         'cab_type_encoded': 0,
-        'name_encoded': 0
+        'name_encoded': 0  # Auto: base = 15.0, rate = 8.0
     }
     response = client.post('/api/predict-surge', json=payload)
     assert response.status_code == 200
@@ -38,6 +37,12 @@ def test_predict_surge_clamped(client):
     assert data['status'] == 'success'
     predicted_surge = data['predicted_surge']
     assert 1.0 <= predicted_surge <= 5.0
+    
+    # Check that estimated_fare uses correct tier rates
+    assert data['base_fare'] == 15.0
+    assert data['rate_per_km'] == 8.0
+    expected_fare = round((15.0 + 10.0 * 8.0) * predicted_surge, 2)
+    assert data['estimated_fare'] == expected_fare
 
 def test_bad_weather_increases_fare(client):
     """POST with isBad: true should return predicted_surge >= same request with isBad: false"""

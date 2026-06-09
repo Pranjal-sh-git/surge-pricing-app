@@ -50,8 +50,22 @@ CORS(app, resources={
 
 # ── Constants (matching frontend's existing pricing model) ─────
 # Indian market rates (Auto ~₹8/km, Mini ~₹12/km, Sedan ~₹15/km)
-BASE_FARE = 30.0
-RATE_PER_KM = 12.0
+TIER_BASE_FARES = {
+    0: 15.0,   # Auto — low base fare
+    1: 20.0,   # Mini
+    2: 30.0,   # Sedan
+    3: 30.0,   # Prime Sedan
+    4: 50.0,   # Prime SUV
+    5: 10.0,   # Bike — lowest base fare
+}
+TIER_RATES_PER_KM = {
+    0: 8.0,    # Auto
+    1: 10.0,   # Mini
+    2: 13.0,   # Sedan
+    3: 16.0,   # Prime Sedan
+    4: 20.0,   # Prime SUV
+    5: 6.0,    # Bike
+}
 
 
 @app.route('/api/health', methods=['GET'])
@@ -98,9 +112,14 @@ def predict_surge_endpoint():
         pickup_month = int(data.get('pickup_month', now.month))
 
         # ── Optional fields with defaults ──────────────────────
-        price = float(data.get('price', BASE_FARE))
         cab_type_encoded = int(data.get('cab_type_encoded', data.get('cab_type', 0)))
         name_encoded = int(data.get('name_encoded', data.get('ride_tier', 0)))
+
+        # Get tier-specific rates
+        tier_base = TIER_BASE_FARES.get(name_encoded, 30.0)
+        tier_rate = TIER_RATES_PER_KM.get(name_encoded, 12.0)
+
+        price = float(data.get('price', tier_base))
 
         # ── Demand intensity → adjust price signal ─────────────
         demand = data.get('demand')
@@ -140,13 +159,13 @@ def predict_surge_endpoint():
         predicted_surge = max(1.0, min(5.0, predicted_surge))
 
         # ── Calculate fare ─────────────────────────────────────
-        estimated_fare = round((BASE_FARE + distance_km * RATE_PER_KM) * predicted_surge, 2)
+        estimated_fare = round((tier_base + distance_km * tier_rate) * predicted_surge, 2)
 
         response = {
             "status": "success",
             "predicted_surge": predicted_surge,
-            "base_fare": BASE_FARE,
-            "rate_per_km": RATE_PER_KM,
+            "base_fare": tier_base,
+            "rate_per_km": tier_rate,
             "distance_km": distance_km,
             "estimated_fare": estimated_fare,
             "surge_active": predicted_surge > 1.0,
