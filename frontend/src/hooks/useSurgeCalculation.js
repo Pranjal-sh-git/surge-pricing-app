@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { predictSurge } from '../services/api';
 
 // Helper to calculate distance in km using Haversine formula
@@ -16,6 +16,7 @@ const calculateHaversineDistance = (lat1, lon1, lat2, lon2) => {
 };
 
 export const useSurgeCalculation = (initialDemand = 5, initialSupply = 5, initialDistance = 10) => {
+  const requestIdRef = useRef(0);
   const [demand, setDemand] = useState(initialDemand);
   const [supply, setSupply] = useState(initialSupply);
   const [distance, setDistance] = useState(initialDistance);
@@ -26,12 +27,14 @@ export const useSurgeCalculation = (initialDemand = 5, initialSupply = 5, initia
 
   const [surgeMultiplier, setSurgeMultiplier] = useState(1);
   const [totalFare, setTotalFare] = useState(0);
-  const [baseFare, setBaseFare] = useState(50.0);
-  const [ratePerKm, setRatePerKm] = useState(15.0);
+  const [baseFare, setBaseFare] = useState(30.0);
+  const [ratePerKm, setRatePerKm] = useState(12.0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [weather, setWeather] = useState(null);
   const [simulateRain, setSimulateRain] = useState(false);
+  const [cabType, setCabType] = useState(0);
+  const [rideTier, setRideTier] = useState(0);
 
   // ── Multi-modal state ──────────────────────────────────────────
   const [activeMode, setActiveMode] = useState('cab');
@@ -42,10 +45,12 @@ export const useSurgeCalculation = (initialDemand = 5, initialSupply = 5, initia
   const [flightEta, setFlightEta] = useState(0);
   const [flightSurge, setFlightSurge] = useState(1.0);
 
-  const fetchWeather = async (lat, lon) => {
+  const fetchWeather = useCallback(async (lat, lon) => {
+    const controller = new AbortController();
     try {
       const res = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`,
+        { signal: controller.signal }
       );
       const data = await res.json();
       if (data.current_weather) {
@@ -58,9 +63,14 @@ export const useSurgeCalculation = (initialDemand = 5, initialSupply = 5, initia
         });
       }
     } catch (e) {
-      console.error('Weather fetch failed', e);
+      if (e.name !== 'AbortError') {
+        console.error('Weather fetch failed', e);
+      }
     }
-  };
+    return () => {
+      controller.abort();
+    };
+  }, []);
 
   // ── Train fare calculator ──────────────────────────────────────
   const calculateTrainFare = (distKm, demandLevel) => {
@@ -121,7 +131,7 @@ export const useSurgeCalculation = (initialDemand = 5, initialSupply = 5, initia
         if (d > 0) setDistance(d);
       }
     },
-    [pickupCoords, dropoffCoords]
+    [pickupCoords, dropoffCoords, fetchWeather]
   );
 
   const fetchSurgeEstimate = async () => {
@@ -132,24 +142,31 @@ export const useSurgeCalculation = (initialDemand = 5, initialSupply = 5, initia
       return false;
     }
 
+    if (isNaN(distance) || !isFinite(distance)) {
+      setError('Could not calculate route distance. Please reselect your pickup and destination.');
+      return false;
+    }
+
     const effectiveWeather = simulateRain
-      ? { temp: weather?.temp || 20, condition: 'Rainy (Simulated)', isBad: true }
-      : weather;
+      ? { temp: weather?.temp ?? 20, condition: 'Rainy (Simulated)', isBad: true }
+      : (weather ?? { temp: 20, condition: 'Unknown', isBad: false });
 
     const requestBody = {
       distance_km: distance,
       demand,
       weather: effectiveWeather,
       price: baseFare,
-      cab_type_encoded: 0,
-      name_encoded: 0,
+      cab_type_encoded: cabType,
+      name_encoded: rideTier,
     };
 
     console.log('[API] predictSurge request body', requestBody);
 
+    const currentId = ++requestIdRef.current;
     setLoading(true);
     try {
       const response = await predictSurge(requestBody);
+      if (currentId !== requestIdRef.current) return false;
       setLoading(false);
 
       if (response?.status !== 'success') {
@@ -210,6 +227,8 @@ export const useSurgeCalculation = (initialDemand = 5, initialSupply = 5, initia
     loading, error,
     weather, simulateRain, setSimulateRain,
     fetchSurgeEstimate,
+    cabType, setCabType,
+    rideTier, setRideTier,
     // Multi-modal
     activeMode, setActiveMode,
     trainFare, trainEta, trainSurge,

@@ -76,12 +76,12 @@ export const ContactSection = () => {
                 { icon: MapPin, label: 'Location', value: 'Silicon Valley, CA', color: 'text-[#F59E0B]' },
                 { icon: MessageSquare, label: 'Support', value: '24/7 Live Chat', color: 'text-[#EF4444]', glow: 'group-hover:shadow-[0_0_20px_rgba(239,68,68,0.2)]' },
               ].map((item, index) => (
-                <div key={index} className={`p-4 rounded-3xl bg-white/[0.03] border border-white/10 hover:border-white/20 transition-all duration-300 group hover:-translate-y-1 ${item.glow}`}>
-                  <div className={`w-9 h-9 lg:w-10 lg:h-10 rounded-xl bg-white/5 flex items-center justify-center mb-3 border border-white/5 group-hover:scale-110 transition-transform ${item.color}`}>
+                <div key={index} className={`p-4 rounded-3xl bg-[#181818]/80 border border-white/10 hover:border-white/20 transition-all duration-300 group hover:-translate-y-1 ${item.glow || ''}`}>
+                  <div className={`w-9 h-9 lg:w-10 lg:h-10 rounded-xl bg-[#222] flex items-center justify-center mb-3 border border-white/5 group-hover:scale-110 transition-transform ${item.color}`}>
                     <item.icon size={18} />
                   </div>
-                  <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">{item.label}</div>
-                  <div className="text-white font-bold text-sm lg:text-base">{item.value}</div>
+                  <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1" style={{ color: '#a1a1aa' }}>{item.label}</div>
+                  <div className="text-white font-bold text-sm lg:text-base" style={{ color: '#ffffff' }}>{item.value}</div>
                 </div>
               ))}
             </div>

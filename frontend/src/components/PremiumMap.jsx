@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, Polyline, useMap, CircleMarker } from 'react-leaflet';
 import L from 'leaflet';
+window.L = L;
+import 'leaflet.heat';
 import 'leaflet/dist/leaflet.css';
 
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -128,6 +130,68 @@ const MapPanner = ({ target }) => {
   return null;
 };
 
+// ── Heatmap Layer ──────────────────────────────────────────────────
+const HeatmapLayer = ({ pickupCoords, surgeMultiplier, showHeatmap }) => {
+  const map = useMap();
+  const heatLayerRef = useRef(null);
+
+  useEffect(() => {
+    if (heatLayerRef.current) {
+      map.removeLayer(heatLayerRef.current);
+      heatLayerRef.current = null;
+    }
+
+    if (showHeatmap && pickupCoords) {
+      const [centerLat, centerLng] = pickupCoords;
+      const points = [];
+      const gridSize = 15;
+      const maxOffset = 0.036; // ~4km radius
+
+      for (let i = 0; i < gridSize; i++) {
+        for (let j = 0; j < gridSize; j++) {
+          const latOffset = ((i - (gridSize - 1) / 2) / ((gridSize - 1) / 2)) * maxOffset;
+          const lngOffset = ((j - (gridSize - 1) / 2) / ((gridSize - 1) / 2)) * maxOffset;
+          
+          const pointLat = centerLat + latOffset;
+          const pointLng = centerLng + lngOffset;
+          
+          const dist = Math.sqrt(latOffset * latOffset + lngOffset * lngOffset);
+          const maxDist = Math.sqrt(maxOffset * maxOffset * 2);
+          const distanceFactor = 1 - (dist / maxDist);
+          
+          const normalizedSurge = Math.max(0, Math.min(1, (surgeMultiplier - 1.0) / 4.0));
+          const baseIntensity = 0.3 + normalizedSurge * 0.5;
+          const randomVar = (Math.random() - 0.5) * 0.2;
+          
+          let intensity = baseIntensity * distanceFactor + randomVar;
+          intensity = Math.max(0.1, Math.min(1.0, intensity));
+          
+          points.push([pointLat, pointLng, intensity]);
+        }
+      }
+
+      const heatLayer = L.heatLayer(points, {
+        radius: 35,
+        blur: 25,
+        maxZoom: 15,
+        gradient: { 0.2: '#00ff88', 0.5: '#ffaa00', 0.8: '#ff4444' }
+      });
+
+      heatLayer.addTo(map);
+      heatLayerRef.current = heatLayer;
+    }
+
+    return () => {
+      if (heatLayerRef.current) {
+        map.removeLayer(heatLayerRef.current);
+        heatLayerRef.current = null;
+      }
+    };
+  }, [pickupCoords, surgeMultiplier, showHeatmap, map]);
+
+  return null;
+};
+
 // ── Click handler ─────────────────────────────────────────────────
 const LocationMarker = ({ setPickup, setDropoff, pickupCoords, dropoffCoords, resetRoute }) => {
   useMapEvents({
@@ -182,7 +246,9 @@ export const PremiumMap = ({
   onPickupChange, onDropoffChange,
   onRouteData,
   activeMode = 'cab',
+  surgeMultiplier = 1.0,
 }) => {
+  const [showHeatmap, setShowHeatmap] = useState(false);
   const [center] = useState([20.5937, 78.9629]); // India center
   const [roadRouteCoords, setRoadRouteCoords] = useState(null);
   const [routeInfo, setRouteInfo] = useState(null);
@@ -283,6 +349,13 @@ export const PremiumMap = ({
         {fitPoints?.length >= 2 && <MapFitter points={fitPoints} />}
         <MapPanner target={panTarget} />
 
+        {/* Heatmap overlay */}
+        <HeatmapLayer
+          pickupCoords={pickupCoords}
+          surgeMultiplier={surgeMultiplier}
+          showHeatmap={showHeatmap}
+        />
+
         <LocationMarker
           pickupCoords={pickupCoords} dropoffCoords={dropoffCoords}
           setPickup={handleSetPickup} setDropoff={handleSetDropoff}
@@ -330,8 +403,9 @@ export const PremiumMap = ({
       {/* ── Route info badge — Google Maps card style, light bg ── */}
       {routeInfo && !routeLoading && (
         <div
-          className="absolute top-3 right-12 z-[1000] rounded-2xl px-4 py-2.5 text-center min-w-[110px]"
+          className="absolute top-3 z-[1000] rounded-2xl px-4 py-2.5 text-center min-w-[110px]"
           style={{
+            right: pickupCoords ? '148px' : '12px',
             background: '#fff',
             boxShadow: '0 2px 12px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.06)',
           }}
@@ -357,8 +431,12 @@ export const PremiumMap = ({
 
       {routeLoading && (
         <div
-          className="absolute top-3 right-12 z-[1000] rounded-xl px-3 py-2 flex items-center gap-2"
-          style={{ background: '#fff', boxShadow: '0 2px 10px rgba(0,0,0,0.18)' }}
+          className="absolute top-3 z-[1000] rounded-xl px-3 py-2 flex items-center gap-2"
+          style={{
+            right: pickupCoords ? '148px' : '12px',
+            background: '#fff',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.18)',
+          }}
         >
           <svg
             className="animate-spin w-3.5 h-3.5"
@@ -371,6 +449,22 @@ export const PremiumMap = ({
           </svg>
           <span className="text-xs font-semibold" style={{ color: '#333' }}>Routing…</span>
         </div>
+      )}
+
+      {/* ── Surge Heatmap Toggle Button ── */}
+      {pickupCoords && (
+        <button
+          onClick={() => setShowHeatmap(!showHeatmap)}
+          className="absolute top-3 right-3 z-[1000] px-4 py-2.5 rounded-2xl text-xs font-bold font-sans tracking-wide cursor-pointer transition-all duration-300 backdrop-blur-md border border-white/10 hover:border-white/20 select-none shadow-lg text-white bg-[#0e0e0e]/75 hover:bg-[#181818]/90"
+          style={{
+            boxShadow: showHeatmap 
+              ? '0 0 15px rgba(255, 68, 68, 0.25), 0 4px 12px rgba(0,0,0,0.5)'
+              : '0 4px 12px rgba(0,0,0,0.4)',
+            borderColor: showHeatmap ? 'rgba(255, 68, 68, 0.4)' : 'rgba(255,255,255,0.1)',
+          }}
+        >
+          {showHeatmap ? '✕ Hide Zones' : '🔥 Surge Zones'}
+        </button>
       )}
 
       {/* ── Bottom hint bar — Google Maps style pill ── */}

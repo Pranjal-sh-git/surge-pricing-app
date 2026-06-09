@@ -12,15 +12,15 @@ Request body for /api/predict-surge:
   "pickup_day": 4,         // 0=Mon, 6=Sun
   "pickup_month": 11,      // 1-12
   "price": 10,             // base price estimate
-  "cab_type_encoded": 0,   // 0=Lyft, 1=Uber (from training data)
+  "cab_type_encoded": 0,   // 0=Ola, 1=Uber India (from training data)
   "name_encoded": 0        // ride tier encoding
 }
 
 Response:
 {
   "predicted_surge": 1.25,
-  "base_fare": 50.0,
-  "rate_per_km": 15.0,
+  "base_fare": 30.0,
+  "rate_per_km": 12.0,
   "distance_km": 5,
   "estimated_fare": 156.25,       // (base_fare + distance_km * rate_per_km) * predicted_surge
   "surge_active": true,
@@ -28,17 +28,30 @@ Response:
 }
 """
 
+import logging
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from predict import predict_surge
 import traceback
 
+logger = logging.getLogger(__name__)
+
 app = Flask(__name__)
-CORS(app)  # Allow cross-origin requests from the frontend
+# Update the production URL before deploying
+CORS(app, resources={
+    r"/api/*": {
+        "origins": [
+            "http://localhost:5173",
+            "http://localhost:5174",
+            "https://your-production-frontend-url.vercel.app"
+        ]
+    }
+})
 
 # ── Constants (matching frontend's existing pricing model) ─────
-BASE_FARE = 50.0
-RATE_PER_KM = 15.0
+# Indian market rates (Auto ~₹8/km, Mini ~₹12/km, Sedan ~₹15/km)
+BASE_FARE = 30.0
+RATE_PER_KM = 12.0
 
 
 @app.route('/api/health', methods=['GET'])
@@ -58,7 +71,7 @@ def predict_surge_endpoint():
       - pickup_day      → pickup_day  (auto-detected from current time if missing)
       - pickup_month    → pickup_month (auto-detected from current time if missing)
       - price           → price (base price estimate, defaults to BASE_FARE)
-      - cab_type        → cab_type_encoded (0=Lyft, 1=Uber)
+      - cab_type        → cab_type_encoded (0=Ola, 1=Uber India)
       - ride_tier       → name_encoded (0-5 mapping of ride tiers)
     """
     try:
@@ -95,12 +108,12 @@ def predict_surge_endpoint():
             demand = float(demand)
             price = price * (1 + (demand - 5) * 0.1)
 
-        # ── Weather impact → adjust price signal ───────────────
-        # Simulate surge impact of rain/snow if not already in model columns
+        # ── Parse additional features ──────────────────────────
         weather_data = data.get('weather')
-        if weather_data and weather_data.get('isBad'):
-            # Bad weather increases price signal (and thus predicted surge) by ~20%
-            price = price * 1.2
+        simulateRain = data.get('simulateRain', data.get('simulate_rain', False))
+        city_encoded = int(data.get('city_encoded', 2))  # default Bangalore
+        is_bad_weather = 1 if (weather_data and weather_data.get('isBad')) or simulateRain else 0
+        is_festival = int(data.get('is_festival', 0))
 
         # ── Build feature dict for model ───────────────────────
         model_input = {
@@ -111,10 +124,13 @@ def predict_surge_endpoint():
             'price': price,
             'cab_type_encoded': cab_type_encoded,
             'name_encoded': name_encoded,
+            'city_encoded': city_encoded,
+            'is_bad_weather': is_bad_weather,
+            'is_festival': is_festival,
         }
 
         # ── Debug: log model input ─────────────────────────────
-        print(f"[DEBUG] Model input: {model_input}")
+        logger.debug("Model input: %s", model_input)
 
         # ── Run prediction ─────────────────────────────────────
         raw_prediction = predict_surge(model_input)
@@ -137,12 +153,12 @@ def predict_surge_endpoint():
         }
 
         # ── Debug: log response ────────────────────────────────
-        print(f"[DEBUG] Response: {response}")
+        logger.debug("Response: %s", response)
 
         return jsonify(response)
 
     except Exception as e:
-        print(f"[ERROR] Prediction failed: {traceback.format_exc()}")
+        logger.error("Prediction failed: %s", traceback.format_exc())
         return jsonify({
             "status": "error",
             "message": f"Prediction failed: {str(e)}"
@@ -150,5 +166,5 @@ def predict_surge_endpoint():
 
 
 if __name__ == '__main__':
-    print("==> Ride Fare Prediction API starting on http://localhost:5000")
+    logger.info("Ride Fare Prediction API starting on http://localhost:5000")
     app.run(host='0.0.0.0', port=5000, debug=True)

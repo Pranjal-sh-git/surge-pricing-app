@@ -9,13 +9,15 @@ import { RideAppUI } from './components/RideAppUI';
 import { ContactSection } from './components/ContactSection';
 import { Footer } from './components/Footer';
 import { useTheme } from './contexts/ThemeContext';
+import ModelInsights from './components/ModelInsights';
 
 // ── Apple-style glass navbar ──────────────────────────────────
 const navItems = [
-  { id: 'hero',    label: 'Home' },
-  { id: 'story',   label: 'How It Works' },
-  { id: 'ride',    label: 'Plan Journey' },
-  { id: 'contact', label: 'Contact' },
+  { id: 'hero',           label: 'Home' },
+  { id: 'story',          label: 'How It Works' },
+  { id: 'model-insights', label: 'Model Insights' },
+  { id: 'ride',           label: 'Plan Journey' },
+  { id: 'contact',        label: 'Contact' },
 ];
 
 const GlassNavbar = () => {
@@ -150,6 +152,8 @@ function App() {
     loading, error,
     weather, simulateRain, setSimulateRain,
     fetchSurgeEstimate,
+    cabType, setCabType,
+    rideTier, setRideTier,
     // Multi-modal
     activeMode, setActiveMode,
     trainFare, trainEta, trainSurge,
@@ -189,6 +193,9 @@ function App() {
           <ScrollStory />
         </div>
 
+        {/* ── MODEL INSIGHTS ── */}
+        <ModelInsights />
+
         {/* ── Fade: Story → Ride App ── */}
         <div className="h-24 pointer-events-none"
           style={{ background: 'linear-gradient(to bottom, #121212, #0e0e0e)' }} />
@@ -213,6 +220,8 @@ function App() {
           simulateRain={simulateRain}
           setSimulateRain={setSimulateRain}
           fetchSurgeEstimate={fetchSurgeEstimate}
+          cabType={cabType}       setCabType={setCabType}
+          rideTier={rideTier}     setRideTier={setRideTier}
           activeMode={activeMode}
           setActiveMode={setActiveMode}
           trainFare={trainFare}

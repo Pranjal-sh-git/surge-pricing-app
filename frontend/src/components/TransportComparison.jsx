@@ -24,6 +24,17 @@ const ModeDetailCard = ({ mode, fare, surge, eta, available, isBest, isFastest, 
   const cfg = MODES[mode] || MODES.cab;  // Safe fallback
   const Icon = cfg.icon;
 
+  if (mode === 'flight' && !fare) {
+    return (
+      <div className="w-full rounded-2xl border border-white/5 bg-white/[0.02] p-4 flex items-center gap-3 text-gray-500 text-xs">
+        <div className="p-2 rounded-xl bg-white/[0.03] text-gray-500 flex-shrink-0">
+          <Plane size={14} />
+        </div>
+        <span>Flights available for routes over 200 km</span>
+      </div>
+    );
+  }
+
   return (
     <motion.button
       onClick={onClick}
@@ -273,7 +284,7 @@ export const TransportComparison = ({
                 isBest={isBestValue(activeMode)}
                 isFastest={isFastest(activeMode)}
                 isActive={true}
-                onClick={() => {}}
+                onClick={() => { }}
               />
 
               {/* Mode-specific details */}
@@ -293,8 +304,8 @@ export const TransportComparison = ({
 const ModeDetails = ({ mode, distance, fare, surge }) => {
   const details = {
     cab: [
-      { label: 'Base Fare', value: '₹50' },
-      { label: 'Rate / km', value: '₹15' },
+      { label: 'Base Fare', value: '₹30' },
+      { label: 'Rate / km', value: '₹12' },
       { label: 'Surge Applied', value: surge > 1 ? `×${surge.toFixed(2)}` : 'None' },
       { label: 'Model', value: 'AI-Predicted' },
     ],

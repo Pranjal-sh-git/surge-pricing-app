@@ -13,8 +13,8 @@ import { MODES } from '../constants/transportModes';
 // ── Surge colour helper ────────────────────────────────────────────
 const getSurgeStyle = (surge) => {
   if (surge >= 1.5) return { color: '#ff6633', bg: 'rgba(216,59,1,0.12)', border: 'rgba(216,59,1,0.25)' };
-  if (surge > 1.0)  return { color: '#E4A11B', bg: 'rgba(228,161,27,0.12)', border: 'rgba(228,161,27,0.25)' };
-  return               { color: '#1DB954',   bg: 'rgba(29,185,84,0.12)',  border: 'rgba(29,185,84,0.25)' };
+  if (surge > 1.0) return { color: '#E4A11B', bg: 'rgba(228,161,27,0.12)', border: 'rgba(228,161,27,0.25)' };
+  return { color: '#1DB954', bg: 'rgba(29,185,84,0.12)', border: 'rgba(29,185,84,0.25)' };
 };
 
 // ── Transport mode icon helper ─────────────────────────────────────
@@ -35,6 +35,8 @@ export const RideAppUI = ({
   loading, error,
   weather, simulateRain, setSimulateRain,
   fetchSurgeEstimate,
+  cabType, setCabType,
+  rideTier, setRideTier,
   // Multi-modal
   activeMode, setActiveMode,
   trainFare, trainEta, trainSurge,
@@ -56,7 +58,7 @@ export const RideAppUI = ({
     }, 350);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [demand, distance, weather, simulateRain]);
+  }, [demand, distance, weather, simulateRain, cabType, rideTier]);
 
   const handleCheck = async () => {
     const ok = await fetchSurgeEstimate();
@@ -64,16 +66,16 @@ export const RideAppUI = ({
   };
 
   // Mode-specific data
-  const fares  = { cab: totalFare,       train: trainFare,  flight: flightFare  };
-  const etas   = { cab: routeDuration,   train: trainEta,   flight: flightEta   };
+  const fares = { cab: totalFare, train: trainFare, flight: flightFare };
+  const etas = { cab: routeDuration, train: trainEta, flight: flightEta };
   const surges = { cab: surgeMultiplier, train: trainSurge, flight: flightSurge };
 
-  const activeFare  = fares[activeMode]  ?? (activeMode === 'all' ? totalFare   : 0);
-  const activeEta   = etas[activeMode]   ?? (activeMode === 'all' ? routeDuration : null);
+  const activeFare = fares[activeMode] ?? (activeMode === 'all' ? totalFare : 0);
+  const activeEta = etas[activeMode] ?? (activeMode === 'all' ? routeDuration : null);
   const activeSurge = surges[activeMode] ?? (activeMode === 'all' ? surgeMultiplier : 1);
 
   const surgeStyle = getSurgeStyle(activeSurge ?? 1);
-  const modeColor  = activeMode === 'all' ? '#1DB954' : (MODES[activeMode]?.color || '#1DB954');
+  const modeColor = activeMode === 'all' ? '#1DB954' : (MODES[activeMode]?.color || '#1DB954');
   const isRainActive = weather?.isBad || simulateRain;
 
   return (
@@ -125,6 +127,7 @@ export const RideAppUI = ({
               onDropoffChange={(c, a) => updateCoordinates('dropoff', c, a)}
               onRouteData={handleRouteData}
               activeMode={activeMode === 'all' ? 'cab' : activeMode}
+              surgeMultiplier={surgeMultiplier}
             />
           </div>
 
@@ -195,6 +198,36 @@ export const RideAppUI = ({
 
             {/* ④ Controls footer — demand + weather + button, all in one compact block */}
             <div className="flex-shrink-0 border-t border-white/5 bg-[#111]/40">
+
+              {/* Cab Operator & Category Selection */}
+              <div className="px-3 pt-2 pb-1.5 border-b border-white/[0.04] grid grid-cols-2 gap-2">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[8px] text-gray-500 uppercase tracking-wider font-bold">Operator</label>
+                  <select
+                    value={cabType}
+                    onChange={(e) => setCabType(parseInt(e.target.value))}
+                    className="bg-white/[0.03] border border-white/5 text-xs text-white rounded-lg px-2 py-1.5 focus:outline-none focus:border-spotify-green/50 cursor-pointer"
+                  >
+                    <option value={0} className="bg-[#181818]">Ola</option>
+                    <option value={1} className="bg-[#181818]">Uber India</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[8px] text-gray-500 uppercase tracking-wider font-bold">Category</label>
+                  <select
+                    value={rideTier}
+                    onChange={(e) => setRideTier(parseInt(e.target.value))}
+                    className="bg-white/[0.03] border border-white/5 text-xs text-white rounded-lg px-2 py-1.5 focus:outline-none focus:border-spotify-green/50 cursor-pointer"
+                  >
+                    <option value={0} className="bg-[#181818]">Auto</option>
+                    <option value={1} className="bg-[#181818]">Mini</option>
+                    <option value={2} className="bg-[#181818]">Sedan</option>
+                    <option value={3} className="bg-[#181818]">Prime Sedan</option>
+                    <option value={4} className="bg-[#181818]">Prime SUV</option>
+                    <option value={5} className="bg-[#181818]">Bike</option>
+                  </select>
+                </div>
+              </div>
 
               {/* Demand slider — ultra-compact */}
               <div className="px-3 pt-2 pb-1.5 border-b border-white/[0.04]">
@@ -310,10 +343,10 @@ export const RideAppUI = ({
                   >
                     <AlertTriangle size={9} className="shrink-0" />
                     <span>
-                      {activeMode === 'cab'    && `Cab surge ×${activeSurge?.toFixed(2)} — consider train or flight.`}
-                      {activeMode === 'train'  && `Peak booking time — ×${activeSurge?.toFixed(2)} surcharge.`}
+                      {activeMode === 'cab' && `Cab surge ×${activeSurge?.toFixed(2)} — consider train or flight.`}
+                      {activeMode === 'train' && `Peak booking time — ×${activeSurge?.toFixed(2)} surcharge.`}
                       {activeMode === 'flight' && `Elevated demand — prices ×${activeSurge?.toFixed(2)}.`}
-                      {activeMode === 'all'    && `Surge ×${activeSurge?.toFixed(2)} active.`}
+                      {activeMode === 'all' && `Surge ×${activeSurge?.toFixed(2)} active.`}
                     </span>
                   </div>
                 )}
