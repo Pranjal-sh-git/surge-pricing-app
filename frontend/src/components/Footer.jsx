@@ -3,11 +3,15 @@ import { motion } from 'framer-motion';
 import { Zap, Globe, ExternalLink, Mail } from 'lucide-react';
 
 const footerLinks = [
-  { label: 'Platform',  href: '#' },
-  { label: 'API Docs',  href: '#' },
-  { label: 'Pricing',   href: '#' },
-  { label: 'Privacy',   href: '#' },
+  { label: 'Home',           href: '#/' },
+  { label: 'How It Works',   href: '#story' },
+  { label: 'Model Insights', href: '#model-insights' },
+  { label: 'Plan Journey',   href: '#ride' },
+  { label: 'API Docs',       href: '#/api-docs' },
+  { label: 'Contact',        href: '#contact' },
+  { label: 'Error 404',      href: '#/404' },
 ];
+
 
 const socials = [
   { icon: Globe,        href: '#', label: 'Website'  },
@@ -16,6 +20,18 @@ const socials = [
 ];
 
 export const Footer = () => {
+  const handleLinkClick = (e, href) => {
+    if (href.startsWith('#') && !href.startsWith('#/')) {
+      const targetId = href.substring(1);
+      const el = document.getElementById(targetId);
+      if (el) {
+        e.preventDefault();
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        window.history.pushState(null, null, href);
+      }
+    }
+  };
+
   return (
     <footer className="relative w-full bg-[#0a0a0a] overflow-hidden pt-16 pb-10">
 
@@ -63,6 +79,7 @@ export const Footer = () => {
               <a
                 key={l.label}
                 href={l.href}
+                onClick={(e) => handleLinkClick(e, l.href)}
                 className="text-sm text-gray-600 dark:text-[#B3B3B3] font-body hover:text-[#1DB954] transition-colors duration-200"
               >
                 {l.label}

@@ -10,6 +10,15 @@ import { ContactSection } from './components/ContactSection';
 import { Footer } from './components/Footer';
 import { useTheme } from './contexts/ThemeContext';
 import ModelInsights from './components/ModelInsights';
+import { ApiDocs } from './components/ApiDocs';
+import { NotFound } from './components/NotFound';
+import { AuthModal } from './components/AuthModal';
+import { AccountButton } from './components/AccountButton';
+import { UserProfile } from './components/UserProfile';
+import { RideHistory } from './components/RideHistory';
+import { useAuth } from './contexts/AuthContext';
+
+
 
 // ── Apple-style glass navbar ──────────────────────────────────
 const navItems = [
@@ -20,12 +29,16 @@ const navItems = [
   { id: 'contact',        label: 'Contact' },
 ];
 
-const GlassNavbar = () => {
+const GlassNavbar = ({ onOpenAuth }) => {
   const [activeId, setActiveId] = useState('hero');
   const [scrolled, setScrolled] = useState(false);
 
   const handleScroll = useCallback(() => {
     setScrolled(window.scrollY > 60);
+    if (window.location.hash.startsWith('#/')) {
+      setActiveId(null);
+      return;
+    }
     const viewportCenter = window.innerHeight / 3;
     let currentId = 'hero';
     for (const item of navItems) {
@@ -45,9 +58,25 @@ const GlassNavbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
 
+  useEffect(() => {
+    const onHash = () => {
+      if (window.location.hash.startsWith('#/')) {
+        setActiveId(null);
+      } else {
+        handleScroll();
+      }
+    };
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, [handleScroll]);
+
   const scrollTo = (id) => {
-    const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (window.location.hash.startsWith('#/')) {
+      window.location.hash = `#${id}`;
+    } else {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   };
 
   return (
@@ -101,10 +130,15 @@ const GlassNavbar = () => {
             <span className="relative z-10">{item.label}</span>
           </button>
         ))}
+
+        {/* ── Account button — separated by a subtle divider ── */}
+        <div className="w-[1px] h-5 bg-white/10 mx-1" />
+        <AccountButton onOpenAuth={onOpenAuth} />
       </div>
     </motion.nav>
   );
 };
+
 
 // ── Back-to-top button ────────────────────────────────────────
 const BackToTop = () => {
@@ -141,6 +175,8 @@ const BackToTop = () => {
 };
 
 function App() {
+  const { user } = useAuth();
+  
   const {
     demand, setDemand,
     supply, setSupply,
@@ -162,10 +198,75 @@ function App() {
 
   const { theme } = useTheme();
 
+  const [currentRoute, setCurrentRoute] = useState(() => {
+    const hash = window.location.hash;
+    if (hash === '#/api-docs' || hash === '#/api-access') return 'api-docs';
+    if (hash === '#/profile') return 'profile';
+    if (hash === '#/ride-history') return 'ride-history';
+    if (hash === '#/404') return '404';
+    if (hash && hash !== '#/' && !hash.startsWith('#hero') && !hash.startsWith('#story') && !hash.startsWith('#model-insights') && !hash.startsWith('#ride') && !hash.startsWith('#contact') && !hash.startsWith('#footer')) {
+      return '404';
+    }
+    return 'home';
+  });
+
+  const [hash, setHash] = useState(() => window.location.hash);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const currentHash = window.location.hash;
+      setHash(currentHash);
+      
+      let route = 'home';
+      if (currentHash === '#/api-docs' || currentHash === '#/api-access') {
+        route = 'api-docs';
+      } else if (currentHash === '#/profile') {
+        route = 'profile';
+      } else if (currentHash === '#/ride-history') {
+        route = 'ride-history';
+      } else if (currentHash === '#/404') {
+        route = '404';
+      } else if (currentHash && currentHash !== '#/' && !['#hero', '#story', '#model-insights', '#ride', '#contact', '#footer'].includes(currentHash)) {
+        route = '404';
+      }
+      setCurrentRoute(route);
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // Redirection for guests trying to access auth-restricted routes
+  useEffect(() => {
+    if ((currentRoute === 'profile' || currentRoute === 'ride-history') && !user) {
+      window.location.hash = '#/';
+      setShowAuthModal(true);
+    }
+  }, [currentRoute, user]);
+
+  useEffect(() => {
+    if (currentRoute !== 'home' || hash === '#/' || !hash) {
+      window.scrollTo(0, 0);
+    } else {
+      const targetId = hash.substring(1);
+      const scrollToSection = () => {
+        const el = document.getElementById(targetId);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      };
+      
+      const timer = setTimeout(scrollToSection, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [currentRoute, hash]);
+
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
   return (
     <div className="min-h-screen text-white font-body bg-[#121212] relative overflow-x-hidden">
       <CustomCursor />
-      <GlassNavbar />
+      <AuthModal open={showAuthModal} onClose={() => setShowAuthModal(false)} />
+      {currentRoute !== '404' && <GlassNavbar onOpenAuth={() => setShowAuthModal(true)} />}
       <BackToTop />
 
       {/* Subtle static ambient orbs */}
@@ -179,69 +280,80 @@ function App() {
       />
 
       <div className="relative z-10">
-        {/* ── HERO ── */}
-        <div id="hero">
-          <HeroSection surgeMultiplier={surgeMultiplier} />
-        </div>
+        {currentRoute === 'home' && (
+          <>
+            {/* ── HERO ── */}
+            <div id="hero">
+              <HeroSection surgeMultiplier={surgeMultiplier} />
+            </div>
 
-        {/* ── Fade: Hero → Story ── */}
-        <div className="relative h-32 -mt-32 z-30 pointer-events-none"
-          style={{ background: 'linear-gradient(to bottom, transparent, #121212)' }} />
+            {/* ── Fade: Hero → Story ── */}
+            <div className="relative h-32 -mt-32 z-30 pointer-events-none"
+              style={{ background: 'linear-gradient(to bottom, transparent, #121212)' }} />
 
-        {/* ── SCROLL STORY ── */}
-        <div id="story">
-          <ScrollStory />
-        </div>
+            {/* ── SCROLL STORY ── */}
+            <div id="story">
+              <ScrollStory />
+            </div>
 
-        {/* ── MODEL INSIGHTS ── */}
-        <ModelInsights />
+            {/* ── MODEL INSIGHTS ── */}
+            <ModelInsights />
 
-        {/* ── Fade: Story → Ride App ── */}
-        <div className="h-24 pointer-events-none"
-          style={{ background: 'linear-gradient(to bottom, #121212, #0e0e0e)' }} />
+            {/* ── Fade: Story → Ride App ── */}
+            <div className="h-24 pointer-events-none"
+              style={{ background: 'linear-gradient(to bottom, #121212, #0e0e0e)' }} />
 
-        {/* ── PLAN JOURNEY (formerly "Get a Ride") ── */}
-        <RideAppUI
-          demand={demand}   setDemand={setDemand}
-          supply={supply}   setSupply={setSupply}
-          distance={distance} setDistance={setDistance}
-          pickupCoords={pickupCoords}
-          dropoffCoords={dropoffCoords}
-          pickupAddress={pickupAddress}
-          dropoffAddress={dropoffAddress}
-          updateCoordinates={updateCoordinates}
-          surgeMultiplier={surgeMultiplier}
-          totalFare={totalFare}
-          baseFare={baseFare}
-          ratePerKm={ratePerKm}
-          loading={loading}
-          error={error}
-          weather={weather}
-          simulateRain={simulateRain}
-          setSimulateRain={setSimulateRain}
-          fetchSurgeEstimate={fetchSurgeEstimate}
-          cabType={cabType}       setCabType={setCabType}
-          rideTier={rideTier}     setRideTier={setRideTier}
-          activeMode={activeMode}
-          setActiveMode={setActiveMode}
-          trainFare={trainFare}
-          trainEta={trainEta}
-          trainSurge={trainSurge}
-          flightFare={flightFare}
-          flightEta={flightEta}
-          flightSurge={flightSurge}
-        />
+            {/* ── PLAN JOURNEY (formerly "Get a Ride") ── */}
+            <div id="ride">
+              <RideAppUI
+                demand={demand}   setDemand={setDemand}
+                supply={supply}   setSupply={setSupply}
+                distance={distance} setDistance={setDistance}
+                pickupCoords={pickupCoords}
+                dropoffCoords={dropoffCoords}
+                pickupAddress={pickupAddress}
+                dropoffAddress={dropoffAddress}
+                updateCoordinates={updateCoordinates}
+                surgeMultiplier={surgeMultiplier}
+                totalFare={totalFare}
+                baseFare={baseFare}
+                ratePerKm={ratePerKm}
+                loading={loading}
+                error={error}
+                weather={weather}
+                simulateRain={simulateRain}
+                setSimulateRain={setSimulateRain}
+                fetchSurgeEstimate={fetchSurgeEstimate}
+                cabType={cabType}       setCabType={setCabType}
+                rideTier={rideTier}     setRideTier={setRideTier}
+                activeMode={activeMode}
+                setActiveMode={setActiveMode}
+                trainFare={trainFare}
+                trainEta={trainEta}
+                trainSurge={trainSurge}
+                flightFare={flightFare}
+                flightEta={flightEta}
+                flightSurge={flightSurge}
+              />
+            </div>
 
-        {/* ── Fade: Ride App → Contact ── */}
-        <div className="h-20 pointer-events-none"
-          style={{ background: 'linear-gradient(to bottom, #0e0e0e, #121212)' }} />
+            {/* ── Fade: Ride App → Contact ── */}
+            <div className="h-20 pointer-events-none"
+              style={{ background: 'linear-gradient(to bottom, #0e0e0e, #121212)' }} />
 
-        {/* ── CONTACT ── */}
-        <ContactSection />
+            {/* ── CONTACT ── */}
+            <ContactSection />
 
-        {/* ── Fade: Contact → Footer ── */}
-        <div className="h-20 pointer-events-none"
-          style={{ background: 'linear-gradient(to bottom, #121212, #0a0a0a)' }} />
+            {/* ── Fade: Contact → Footer ── */}
+            <div className="h-20 pointer-events-none"
+              style={{ background: 'linear-gradient(to bottom, #121212, #0a0a0a)' }} />
+          </>
+        )}
+
+        {currentRoute === 'profile' && <UserProfile />}
+        {currentRoute === 'ride-history' && <RideHistory />}
+        {currentRoute === 'api-docs' && <ApiDocs onOpenAuth={() => setShowAuthModal(true)} />}
+        {currentRoute === '404' && <NotFound />}
 
         {/* ── FOOTER ── */}
         <div id="footer">
@@ -253,3 +365,4 @@ function App() {
 }
 
 export default App;
+

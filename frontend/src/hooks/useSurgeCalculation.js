@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { predictSurge } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 // Helper to calculate distance in km using Haversine formula
 const calculateHaversineDistance = (lat1, lon1, lat2, lon2) => {
@@ -16,6 +17,14 @@ const calculateHaversineDistance = (lat1, lon1, lat2, lon2) => {
 };
 
 export const useSurgeCalculation = (initialDemand = 5, initialSupply = 5, initialDistance = 10) => {
+  let addRideToHistory = null;
+  try {
+    const auth = useAuth();
+    addRideToHistory = auth.addRideToHistory;
+  } catch (e) {
+    // Suppress context error in test environment
+  }
+
   const requestIdRef = useRef(0);
   const [demand, setDemand] = useState(initialDemand);
   const [supply, setSupply] = useState(initialSupply);
@@ -196,6 +205,19 @@ export const useSurgeCalculation = (initialDemand = 5, initialSupply = 5, initia
       setBaseFare(mappedBaseFare);
       setRatePerKm(mappedRatePerKm);
       setTotalFare(mappedTotalFare);
+
+      // Save to history if logged in
+      if (addRideToHistory) {
+        addRideToHistory({
+          distance_km: distance,
+          cabType,
+          rideTier,
+          surgeMultiplier: mappedSurge,
+          totalFare: mappedTotalFare,
+          pickupAddress,
+          dropoffAddress
+        });
+      }
 
       // ── Recalculate alternate modes ────────────────────────
       const { fare: tf, eta: te, surge: ts } = calculateTrainFare(distance, demand);
