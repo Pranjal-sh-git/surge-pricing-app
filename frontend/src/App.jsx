@@ -7,26 +7,28 @@ import { HeroSection } from './components/HeroSection';
 import { ScrollStory } from './components/ScrollStory';
 import { RideAppUI } from './components/RideAppUI';
 import { ContactSection } from './components/ContactSection';
+import { AboutSection } from './components/AboutSection';
 import { Footer } from './components/Footer';
 import { useTheme } from './contexts/ThemeContext';
 import ModelInsights from './components/ModelInsights';
-import { ApiDocs } from './components/ApiDocs';
 import { NotFound } from './components/NotFound';
 import { AuthModal } from './components/AuthModal';
 import { AccountButton } from './components/AccountButton';
 import { UserProfile } from './components/UserProfile';
 import { RideHistory } from './components/RideHistory';
 import { useAuth } from './contexts/AuthContext';
+import { AuthorProfile } from './components/AuthorProfile';
 
 
 
 // ── Apple-style glass navbar ──────────────────────────────────
 const navItems = [
-  { id: 'hero',           label: 'Home' },
-  { id: 'story',          label: 'How It Works' },
+  { id: 'hero', label: 'Home' },
+  { id: 'story', label: 'How It Works' },
   { id: 'model-insights', label: 'Model Insights' },
-  { id: 'ride',           label: 'Plan Journey' },
-  { id: 'contact',        label: 'Contact' },
+  { id: 'ride', label: 'Plan Journey' },
+  { id: 'about', label: 'About' },
+  { id: 'contact', label: 'Contact' },
 ];
 
 const GlassNavbar = ({ onOpenAuth }) => {
@@ -114,7 +116,7 @@ const GlassNavbar = ({ onOpenAuth }) => {
           <button
             key={item.id}
             onClick={() => scrollTo(item.id)}
-            className={`relative px-4 py-1.5 rounded-xl text-[13px] font-medium tracking-tight transition-all duration-300 cursor-pointer
+            className={`relative px-4 py-1.5 rounded-xl text-[13px] font-medium tracking-tight transition-all duration-300 cursor-pointer whitespace-nowrap
               ${activeId === item.id
                 ? 'text-white'
                 : 'text-[#888] hover:text-white/80'
@@ -158,8 +160,8 @@ const BackToTop = () => {
         <motion.button
           key="back-to-top"
           initial={{ opacity: 0, scale: 0.6, y: 20 }}
-          animate={{ opacity: 1, scale: 1,  y: 0  }}
-          exit={  { opacity: 0, scale: 0.6, y: 20  }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.6, y: 20 }}
           transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
           onClick={scrollTop}
           aria-label="Back to top"
@@ -176,7 +178,7 @@ const BackToTop = () => {
 
 function App() {
   const { user } = useAuth();
-  
+
   const {
     demand, setDemand,
     supply, setSupply,
@@ -200,11 +202,14 @@ function App() {
 
   const [currentRoute, setCurrentRoute] = useState(() => {
     const hash = window.location.hash;
-    if (hash === '#/api-docs' || hash === '#/api-access') return 'api-docs';
     if (hash === '#/profile') return 'profile';
     if (hash === '#/ride-history') return 'ride-history';
+    if (hash.startsWith('#/author/')) return 'author-profile';
     if (hash === '#/404') return '404';
-    if (hash && hash !== '#/' && !hash.startsWith('#hero') && !hash.startsWith('#story') && !hash.startsWith('#model-insights') && !hash.startsWith('#ride') && !hash.startsWith('#contact') && !hash.startsWith('#footer')) {
+    
+    const clean = hash.replace(/^#\/?/, '');
+    const isHomeSection = ['hero', 'story', 'model-insights', 'ride', 'about', 'contact', 'footer'].includes(clean);
+    if (hash && hash !== '#/' && !isHomeSection) {
       return '404';
     }
     return 'home';
@@ -216,18 +221,22 @@ function App() {
     const handleHashChange = () => {
       const currentHash = window.location.hash;
       setHash(currentHash);
-      
+
       let route = 'home';
-      if (currentHash === '#/api-docs' || currentHash === '#/api-access') {
-        route = 'api-docs';
-      } else if (currentHash === '#/profile') {
+      if (currentHash === '#/profile') {
         route = 'profile';
       } else if (currentHash === '#/ride-history') {
         route = 'ride-history';
+      } else if (currentHash.startsWith('#/author/')) {
+        route = 'author-profile';
       } else if (currentHash === '#/404') {
         route = '404';
-      } else if (currentHash && currentHash !== '#/' && !['#hero', '#story', '#model-insights', '#ride', '#contact', '#footer'].includes(currentHash)) {
-        route = '404';
+      } else {
+        const clean = currentHash.replace(/^#\/?/, '');
+        const isHomeSection = ['hero', 'story', 'model-insights', 'ride', 'about', 'contact', 'footer'].includes(clean);
+        if (currentHash && currentHash !== '#/' && !isHomeSection) {
+          route = '404';
+        }
       }
       setCurrentRoute(route);
     };
@@ -244,19 +253,21 @@ function App() {
   }, [currentRoute, user]);
 
   useEffect(() => {
-    if (currentRoute !== 'home' || hash === '#/' || !hash) {
-      window.scrollTo(0, 0);
-    } else {
-      const targetId = hash.substring(1);
+    if (currentRoute === 'home' && hash && hash !== '#/') {
+      const targetId = hash.replace(/^#\/?/, '');
       const scrollToSection = () => {
         const el = document.getElementById(targetId);
         if (el) {
           el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
       };
-      
-      const timer = setTimeout(scrollToSection, 150);
-      return () => clearTimeout(timer);
+
+      const t1 = setTimeout(scrollToSection, 150);
+      const t2 = setTimeout(scrollToSection, 600);
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+      };
     }
   }, [currentRoute, hash]);
 
@@ -266,8 +277,8 @@ function App() {
     <div className="min-h-screen text-white font-body bg-[#121212] relative overflow-x-hidden">
       <CustomCursor />
       <AuthModal open={showAuthModal} onClose={() => setShowAuthModal(false)} />
-      {currentRoute !== '404' && <GlassNavbar onOpenAuth={() => setShowAuthModal(true)} />}
-      <BackToTop />
+      {currentRoute === 'home' && <GlassNavbar onOpenAuth={() => setShowAuthModal(true)} />}
+      {currentRoute === 'home' && <BackToTop />}
 
       {/* Subtle static ambient orbs */}
       <div
@@ -280,89 +291,101 @@ function App() {
       />
 
       <div className="relative z-10">
-        {currentRoute === 'home' && (
-          <>
-            {/* ── HERO ── */}
-            <div id="hero">
-              <HeroSection surgeMultiplier={surgeMultiplier} />
-            </div>
+        {/* Landing Page Content: remains mounted in the background */}
+        <>
+          {/* ── HERO ── */}
+          <div id="hero">
+            <HeroSection surgeMultiplier={surgeMultiplier} />
+          </div>
 
-            {/* ── Fade: Hero → Story ── */}
-            <div className="relative h-32 -mt-32 z-30 pointer-events-none"
-              style={{ background: 'linear-gradient(to bottom, transparent, #121212)' }} />
+          {/* ── Fade: Hero → Story ── */}
+          <div className="relative h-32 -mt-32 z-30 pointer-events-none"
+            style={{ background: 'linear-gradient(to bottom, transparent, #121212)' }} />
 
-            {/* ── SCROLL STORY ── */}
-            <div id="story">
-              <ScrollStory />
-            </div>
+          {/* ── SCROLL STORY ── */}
+          <div id="story">
+            <ScrollStory />
+          </div>
 
-            {/* ── MODEL INSIGHTS ── */}
-            <ModelInsights />
+          {/* ── MODEL INSIGHTS ── */}
+          <ModelInsights />
 
-            {/* ── Fade: Story → Ride App ── */}
-            <div className="h-24 pointer-events-none"
-              style={{ background: 'linear-gradient(to bottom, #121212, #0e0e0e)' }} />
+          {/* ── Fade: Story → Ride App ── */}
+          <div className="h-24 pointer-events-none"
+            style={{ background: 'linear-gradient(to bottom, #121212, #0e0e0e)' }} />
 
-            {/* ── PLAN JOURNEY (formerly "Get a Ride") ── */}
-            <div id="ride">
-              <RideAppUI
-                demand={demand}   setDemand={setDemand}
-                supply={supply}   setSupply={setSupply}
-                distance={distance} setDistance={setDistance}
-                pickupCoords={pickupCoords}
-                dropoffCoords={dropoffCoords}
-                pickupAddress={pickupAddress}
-                dropoffAddress={dropoffAddress}
-                updateCoordinates={updateCoordinates}
-                surgeMultiplier={surgeMultiplier}
-                totalFare={totalFare}
-                baseFare={baseFare}
-                ratePerKm={ratePerKm}
-                loading={loading}
-                error={error}
-                weather={weather}
-                simulateRain={simulateRain}
-                setSimulateRain={setSimulateRain}
-                fetchSurgeEstimate={fetchSurgeEstimate}
-                cabType={cabType}       setCabType={setCabType}
-                rideTier={rideTier}     setRideTier={setRideTier}
-                activeMode={activeMode}
-                setActiveMode={setActiveMode}
-                trainFare={trainFare}
-                trainEta={trainEta}
-                trainSurge={trainSurge}
-                flightFare={flightFare}
-                flightEta={flightEta}
-                flightSurge={flightSurge}
-              />
-            </div>
+          {/* ── PLAN JOURNEY (formerly "Get a Ride") ── */}
+          <div id="ride">
+            <RideAppUI
+              demand={demand} setDemand={setDemand}
+              supply={supply} setSupply={setSupply}
+              distance={distance} setDistance={setDistance}
+              pickupCoords={pickupCoords}
+              dropoffCoords={dropoffCoords}
+              pickupAddress={pickupAddress}
+              dropoffAddress={dropoffAddress}
+              updateCoordinates={updateCoordinates}
+              surgeMultiplier={surgeMultiplier}
+              totalFare={totalFare}
+              baseFare={baseFare}
+              ratePerKm={ratePerKm}
+              loading={loading}
+              error={error}
+              weather={weather}
+              simulateRain={simulateRain}
+              setSimulateRain={setSimulateRain}
+              fetchSurgeEstimate={fetchSurgeEstimate}
+              cabType={cabType} setCabType={setCabType}
+              rideTier={rideTier} setRideTier={setRideTier}
+              activeMode={activeMode}
+              setActiveMode={setActiveMode}
+              trainFare={trainFare}
+              trainEta={trainEta}
+              trainSurge={trainSurge}
+              flightFare={flightFare}
+              flightEta={flightEta}
+              flightSurge={flightSurge}
+            />
+          </div>
 
-            {/* ── Fade: Ride App → Contact ── */}
-            <div className="h-20 pointer-events-none"
-              style={{ background: 'linear-gradient(to bottom, #0e0e0e, #121212)' }} />
+          {/* ── Fade: Ride App → About ── */}
+          <div className="h-20 pointer-events-none"
+            style={{ background: 'linear-gradient(to bottom, #0e0e0e, #0c0c0c)' }} />
 
-            {/* ── CONTACT ── */}
-            <ContactSection />
+          {/* ── ABOUT US ── */}
+          <AboutSection />
 
-            {/* ── Fade: Contact → Footer ── */}
-            <div className="h-20 pointer-events-none"
-              style={{ background: 'linear-gradient(to bottom, #121212, #0a0a0a)' }} />
-          </>
+          {/* ── Fade: About → Contact ── */}
+          <div className="h-20 pointer-events-none"
+            style={{ background: 'linear-gradient(to bottom, #0c0c0c, #121212)' }} />
+
+          {/* ── CONTACT ── */}
+          <ContactSection />
+
+          {/* ── Fade: Contact → Footer ── */}
+          <div className="h-20 pointer-events-none"
+            style={{ background: 'linear-gradient(to bottom, #121212, #0a0a0a)' }} />
+
+          {/* ── FOOTER ── */}
+          <div id="footer">
+            <Footer />
+          </div>
+        </>
+
+        {/* ── Standalone subpages rendered as opaque fullscreen overlays ── */}
+        {['profile', 'ride-history', 'author-profile', '404'].includes(currentRoute) && (
+          <div className="fixed inset-0 z-[80] overflow-y-auto bg-[#0a0a0a]">
+            {currentRoute === 'profile' && <UserProfile />}
+            {currentRoute === 'ride-history' && <RideHistory />}
+            {currentRoute === 'author-profile' && <AuthorProfile />}
+            {currentRoute === '404' && <NotFound />}
+          </div>
         )}
-
-        {currentRoute === 'profile' && <UserProfile />}
-        {currentRoute === 'ride-history' && <RideHistory />}
-        {currentRoute === 'api-docs' && <ApiDocs onOpenAuth={() => setShowAuthModal(true)} />}
-        {currentRoute === '404' && <NotFound />}
-
-        {/* ── FOOTER ── */}
-        <div id="footer">
-          <Footer />
-        </div>
       </div>
     </div>
   );
 }
 
 export default App;
+
 

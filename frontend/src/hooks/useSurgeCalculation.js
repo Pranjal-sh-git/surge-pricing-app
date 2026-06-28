@@ -16,7 +16,7 @@ const calculateHaversineDistance = (lat1, lon1, lat2, lon2) => {
   return Math.round((R * c) * 10) / 10;
 };
 
-export const useSurgeCalculation = (initialDemand = 5, initialSupply = 5, initialDistance = 10) => {
+export const useSurgeCalculation = (initialDemand = 5, initialSupply = 5, initialDistance = 0) => {
   let addRideToHistory = null;
   try {
     const auth = useAuth();
@@ -26,6 +26,7 @@ export const useSurgeCalculation = (initialDemand = 5, initialSupply = 5, initia
   }
 
   const requestIdRef = useRef(0);
+  const lastSavedRouteRef = useRef({ pickup: null, dropoff: null });
   const [demand, setDemand] = useState(initialDemand);
   const [supply, setSupply] = useState(initialSupply);
   const [distance, setDistance] = useState(initialDistance);
@@ -105,9 +106,9 @@ export const useSurgeCalculation = (initialDemand = 5, initialSupply = 5, initia
     const fuelSurcharge = distKm < 500 ? 1.20 : distKm < 1000 ? 1.10 : 1.05;
     const demandSurge =
       demandLevel >= 8 ? 1.35
-      : demandLevel >= 6 ? 1.20
-      : demandLevel >= 4 ? 1.10
-      : 1.0;
+        : demandLevel >= 6 ? 1.20
+          : demandLevel >= 4 ? 1.10
+            : 1.0;
     const totalSurge = Math.round(fuelSurcharge * demandSurge * 100) / 100;
     const fare = Math.round(rawFare * totalSurge);
     const eta = Math.round((distKm / 700) * 60 + 90);
@@ -116,15 +117,24 @@ export const useSurgeCalculation = (initialDemand = 5, initialSupply = 5, initia
 
   const updateCoordinates = useCallback(
     (type, coords, address) => {
+      setIsLandPossible(true);
       if (type === 'pickup') {
         setPickupCoords(coords);
         if (coords) fetchWeather(coords[0], coords[1]);
-        if (address !== undefined)
-          setPickupAddress(coords ? address : 'Select pickup on map...');
+        const addrLabel = address !== undefined 
+          ? address 
+          : coords 
+            ? `Location (${coords[0].toFixed(3)}, ${coords[1].toFixed(3)})` 
+            : 'Select pickup on map...';
+        setPickupAddress(addrLabel);
       } else {
         setDropoffCoords(coords);
-        if (address !== undefined)
-          setDropoffAddress(coords ? address : 'Select destination...');
+        const addrLabel = address !== undefined 
+          ? address 
+          : coords 
+            ? `Location (${coords[0].toFixed(3)}, ${coords[1].toFixed(3)})` 
+            : 'Select destination...';
+        setDropoffAddress(addrLabel);
       }
 
       if (!coords) return;
@@ -198,16 +208,24 @@ export const useSurgeCalculation = (initialDemand = 5, initialSupply = 5, initia
         typeof response.estimated_fare === 'number'
           ? response.estimated_fare
           : Math.round(
-              ((mappedBaseFare + distance * mappedRatePerKm) * mappedSurge) * 100
-            ) / 100;
+            ((mappedBaseFare + distance * mappedRatePerKm) * mappedSurge) * 100
+          ) / 100;
 
       setSurgeMultiplier(mappedSurge);
       setBaseFare(mappedBaseFare);
       setRatePerKm(mappedRatePerKm);
       setTotalFare(mappedTotalFare);
 
-      // Save to history if logged in
-      if (addRideToHistory) {
+      // Save to history if logged in AND it's a new route selection
+      const isNewRoute = 
+        !lastSavedRouteRef.current.pickup ||
+        !lastSavedRouteRef.current.dropoff ||
+        lastSavedRouteRef.current.pickup[0] !== pickupCoords?.[0] ||
+        lastSavedRouteRef.current.pickup[1] !== pickupCoords?.[1] ||
+        lastSavedRouteRef.current.dropoff[0] !== dropoffCoords?.[0] ||
+        lastSavedRouteRef.current.dropoff[1] !== dropoffCoords?.[1];
+
+      if (addRideToHistory && isNewRoute && pickupCoords && dropoffCoords) {
         addRideToHistory({
           distance_km: distance,
           cabType,
@@ -217,6 +235,7 @@ export const useSurgeCalculation = (initialDemand = 5, initialSupply = 5, initia
           pickupAddress,
           dropoffAddress
         });
+        lastSavedRouteRef.current = { pickup: pickupCoords, dropoff: dropoffCoords };
       }
 
       // ── Recalculate alternate modes ────────────────────────

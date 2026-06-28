@@ -79,7 +79,7 @@ export const AccountButton = ({ onOpenAuth }) => {
                    text-[#1DB954] text-[13px] font-semibold
                    hover:bg-[#1DB954]/20 hover:border-[#1DB954]/50
                    hover:shadow-[0_0_16px_rgba(29,185,84,0.2)]
-                   transition-all duration-300 cursor-pointer"
+                   transition-all duration-300 cursor-pointer whitespace-nowrap"
       >
         <User size={14} strokeWidth={2} />
         <span className="hidden sm:inline">Sign In</span>
@@ -173,13 +173,6 @@ export const AccountButton = ({ onOpenAuth }) => {
                 sub="Your past estimates"
                 iconColor="#00f3ff"
                 onClick={() => { setOpen(false); window.location.hash = '#/ride-history'; }}
-              />
-              <MenuRow
-                icon={Zap}
-                label="API Access"
-                sub="Developer resources"
-                iconColor="#F59E0B"
-                onClick={() => { setOpen(false); window.location.hash = '#/api-docs'; }}
               />
             </div>
 

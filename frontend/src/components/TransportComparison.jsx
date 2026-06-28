@@ -20,7 +20,7 @@ const SurgeBadge = ({ surge, color }) => {
 };
 
 // ── Single transport option card ─────────────────────────────────
-const ModeDetailCard = ({ mode, fare, surge, eta, available, isBest, isFastest, onClick, isActive }) => {
+const ModeDetailCard = ({ mode, fare, surge, eta, available, isBest, isFastest, onClick, isActive, hasResult }) => {
   const cfg = MODES[mode] || MODES.cab;  // Safe fallback
   const Icon = cfg.icon;
 
@@ -92,10 +92,10 @@ const ModeDetailCard = ({ mode, fare, surge, eta, available, isBest, isFastest, 
                   transition={{ duration: 0.2 }}
                   className="text-xl font-bold font-display text-white"
                 >
-                  {fare > 0 ? `₹${Math.round(fare)}` : '—'}
+                  {hasResult && fare > 0 ? `₹${Math.round(fare)}` : 'N/A'}
                 </motion.span>
               </AnimatePresence>
-              {surge !== null && surge !== undefined && <SurgeBadge surge={surge} />}
+              {hasResult && surge !== null && surge !== undefined && <SurgeBadge surge={surge} />}
             </div>
           </div>
 
@@ -104,7 +104,7 @@ const ModeDetailCard = ({ mode, fare, surge, eta, available, isBest, isFastest, 
             <div className="flex items-center gap-1 justify-end">
               <Clock size={10} style={{ color: cfg.color }} />
               <span className="text-sm font-bold text-white">
-                {eta > 0 ? formatETA(eta) : '—'}
+                {hasResult && eta > 0 ? formatETA(eta) : '—'}
               </span>
             </div>
             {!available && (
@@ -125,7 +125,7 @@ const formatETA = (minutes) => {
 };
 
 // ── Comparison table view (ALL tab) ─────────────────────────────
-const ComparisonTable = ({ cabFare, trainFare, flightFare, cabEta, trainEta, flightEta, cabSurge, trainSurge, flightSurge, onSelect }) => {
+const ComparisonTable = ({ cabFare, trainFare, flightFare, cabEta, trainEta, flightEta, cabSurge, trainSurge, flightSurge, onSelect, hasResult }) => {
   const cheapestId = [
     { id: 'cab', fare: cabFare },
     { id: 'train', fare: trainFare },
@@ -164,6 +164,7 @@ const ComparisonTable = ({ cabFare, trainFare, flightFare, cabEta, trainEta, fli
             isFastest={fastestId === mode && etas[mode] > 0}
             isActive={false}
             onClick={() => onSelect(mode)}
+            hasResult={hasResult}
           />
         );
       })}
@@ -264,6 +265,7 @@ export const TransportComparison = ({
                 cabEta={cabEta} trainEta={trainEta} flightEta={flightEta}
                 cabSurge={cabSurge} trainSurge={trainSurge} flightSurge={flightSurge}
                 onSelect={setActiveMode}
+                hasResult={hasResult}
               />
             </motion.div>
           ) : (
@@ -285,12 +287,14 @@ export const TransportComparison = ({
                 isFastest={isFastest(activeMode)}
                 isActive={true}
                 onClick={() => { }}
+                hasResult={hasResult}
               />
 
               {/* Mode-specific details */}
               <ModeDetails mode={activeMode} distance={distance}
                 fare={{ cab: cabFare, train: trainFare, flight: flightFare }[activeMode]}
                 surge={{ cab: cabSurge, train: trainSurge, flight: flightSurge }[activeMode]}
+                hasResult={hasResult}
               />
             </motion.div>
           )}
@@ -301,7 +305,7 @@ export const TransportComparison = ({
 };
 
 // ── Mode-specific detail pane ────────────────────────────────────
-const ModeDetails = ({ mode, distance, fare, surge }) => {
+const ModeDetails = ({ mode, distance, fare, surge, hasResult }) => {
   const details = {
     cab: [
       { label: 'Base Fare', value: '₹30' },
@@ -338,12 +342,12 @@ const ModeDetails = ({ mode, distance, fare, surge }) => {
           <span className="text-[10px] font-bold text-gray-200">{value}</span>
         </div>
       ))}
-      {fare > 0 && (
-        <div className="pt-2 mt-1 border-t border-white/5 flex justify-between items-center">
-          <span className="text-[10px] font-bold text-gray-400">Total Estimate</span>
-          <span className="text-sm font-bold" style={{ color: cfg?.color }}>₹{Math.round(fare)}</span>
-        </div>
-      )}
+      <div className="pt-2 mt-1 border-t border-white/5 flex justify-between items-center">
+        <span className="text-[10px] font-bold text-gray-400">Total Estimate</span>
+        <span className="text-sm font-bold" style={{ color: cfg?.color }}>
+          {hasResult && fare > 0 ? `₹${Math.round(fare)}` : 'N/A'}
+        </span>
+      </div>
     </div>
   );
 };

@@ -14,10 +14,10 @@ L.Icon.Default.mergeOptions({ iconRetinaUrl: markerIcon2x, iconUrl: markerIcon, 
 
 // ── Mode colour palette ─────────────────────────────────────────────
 const MODE_COLORS = {
-  cab:    { primary: '#1DB954', glow: 'rgba(29,185,84,0.6)',   label: 'Road Route',   dash: '' },
-  train:  { primary: '#3B82F6', glow: 'rgba(59,130,246,0.6)',  label: 'Rail Route',   dash: '12 8' },
-  flight: { primary: '#F59E0B', glow: 'rgba(245,158,11,0.6)',  label: 'Flight Path',  dash: '4 8' },
-  all:    { primary: '#1DB954', glow: 'rgba(29,185,84,0.5)',   label: 'Road Route',   dash: '' },
+  cab: { primary: '#1DB954', glow: 'rgba(29,185,84,0.6)', label: 'Road Route', dash: '' },
+  train: { primary: '#3B82F6', glow: 'rgba(59,130,246,0.6)', label: 'Rail Route', dash: '12 8' },
+  flight: { primary: '#F59E0B', glow: 'rgba(245,158,11,0.6)', label: 'Flight Path', dash: '4 8' },
+  all: { primary: '#1DB954', glow: 'rgba(29,185,84,0.5)', label: 'Road Route', dash: '' },
 };
 
 // ── Build a great-circle arc between two points (for flights) ─────
@@ -151,21 +151,21 @@ const HeatmapLayer = ({ pickupCoords, surgeMultiplier, showHeatmap }) => {
         for (let j = 0; j < gridSize; j++) {
           const latOffset = ((i - (gridSize - 1) / 2) / ((gridSize - 1) / 2)) * maxOffset;
           const lngOffset = ((j - (gridSize - 1) / 2) / ((gridSize - 1) / 2)) * maxOffset;
-          
+
           const pointLat = centerLat + latOffset;
           const pointLng = centerLng + lngOffset;
-          
+
           const dist = Math.sqrt(latOffset * latOffset + lngOffset * lngOffset);
           const maxDist = Math.sqrt(maxOffset * maxOffset * 2);
           const distanceFactor = 1 - (dist / maxDist);
-          
+
           const normalizedSurge = Math.max(0, Math.min(1, (surgeMultiplier - 1.0) / 4.0));
           const baseIntensity = 0.3 + normalizedSurge * 0.5;
           const randomVar = (Math.random() - 0.5) * 0.2;
-          
+
           let intensity = baseIntensity * distanceFactor + randomVar;
           intensity = Math.max(0.1, Math.min(1.0, intensity));
-          
+
           points.push([pointLat, pointLng, intensity]);
         }
       }
@@ -322,7 +322,7 @@ export const PremiumMap = ({
 
   const hint = !pickupCoords ? '📍 Click map to set Pickup'
     : !dropoffCoords ? '🎯 Click map to set Destination'
-    : '🔄 Click anywhere to reset route';
+      : '🔄 Click anywhere to reset route';
 
   const modeLabel = { cab: '🚗', train: '🚂', flight: '✈️', all: '🚗' }[activeMode] || '🚗';
 
@@ -457,7 +457,7 @@ export const PremiumMap = ({
           onClick={() => setShowHeatmap(!showHeatmap)}
           className="absolute top-3 right-3 z-[1000] px-4 py-2.5 rounded-2xl text-xs font-bold font-sans tracking-wide cursor-pointer transition-all duration-300 backdrop-blur-md border border-white/10 hover:border-white/20 select-none shadow-lg text-white bg-[#0e0e0e]/75 hover:bg-[#181818]/90"
           style={{
-            boxShadow: showHeatmap 
+            boxShadow: showHeatmap
               ? '0 0 15px rgba(255, 68, 68, 0.25), 0 4px 12px rgba(0,0,0,0.5)'
               : '0 4px 12px rgba(0,0,0,0.4)',
             borderColor: showHeatmap ? 'rgba(255, 68, 68, 0.4)' : 'rgba(255,255,255,0.1)',

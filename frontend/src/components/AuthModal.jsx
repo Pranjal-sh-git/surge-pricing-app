@@ -72,6 +72,14 @@ export const AuthModal = ({ open, onClose }) => {
   const [signTerms, setSignTerms]         = useState(false);
   const [signErrors, setSignErrors]       = useState({});
 
+  // Forgot password fields
+  const [forgotEmail, setForgotEmail]     = useState('');
+  const [forgotError, setForgotError]     = useState('');
+  const [resetEmail, setResetEmail]       = useState('');
+  const [newPassword, setNewPassword]     = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [resetErrors, setResetErrors]     = useState({});
+
   // Close on Escape
   useEffect(() => {
     const handleKey = (e) => { if (e.key === 'Escape') onClose(); };
@@ -87,6 +95,7 @@ export const AuthModal = ({ open, onClose }) => {
       setGlobalError('');
       setLoginEmail(''); setLoginPassword(''); setLoginErrors({});
       setSignName(''); setSignEmail(''); setSignPassword(''); setSignConfirm(''); setSignTerms(false); setSignErrors({});
+      setForgotEmail(''); setForgotError(''); setResetEmail(''); setNewPassword(''); setConfirmNewPassword(''); setResetErrors({});
     }
   }, [open]);
 
@@ -95,6 +104,8 @@ export const AuthModal = ({ open, onClose }) => {
     setGlobalError('');
     setLoginErrors({});
     setSignErrors({});
+    setForgotError('');
+    setResetErrors({});
     setStatus('idle');
   };
 
@@ -146,6 +157,75 @@ export const AuthModal = ({ open, onClose }) => {
     } else {
       setStatus('idle');
       setGlobalError(result.error);
+    }
+  };
+
+  const handleForgotSubmit = async (e) => {
+    e.preventDefault();
+    setForgotError('');
+    if (!forgotEmail) {
+      setForgotError('Email is required');
+      return;
+    }
+    if (!/\S+@\S+\.\S+/.test(forgotEmail)) {
+      setForgotError('Invalid email address');
+      return;
+    }
+
+    setStatus('loading');
+    await new Promise(r => setTimeout(r, 600));
+
+    const existingRaw = localStorage.getItem('surgeiq_users_db');
+    const usersDb = existingRaw ? JSON.parse(existingRaw) : {};
+    const record = usersDb[forgotEmail.toLowerCase().trim()];
+
+    if (!record) {
+      setStatus('idle');
+      setForgotError('No account found with this email.');
+      return;
+    }
+
+    setStatus('idle');
+    setResetEmail(forgotEmail.toLowerCase().trim());
+    setTab('reset-new');
+  };
+
+  const handleResetNewSubmit = async (e) => {
+    e.preventDefault();
+    const errs = {};
+    if (!newPassword) errs.password = 'Password is required';
+    else if (newPassword.length < 6) errs.password = 'Minimum 6 characters';
+    if (!confirmNewPassword) errs.confirm = 'Confirm password is required';
+    else if (confirmNewPassword !== newPassword) errs.confirm = 'Passwords do not match';
+
+    if (Object.keys(errs).length) {
+      setResetErrors(errs);
+      return;
+    }
+
+    setStatus('loading');
+    await new Promise(r => setTimeout(r, 800));
+
+    const existingRaw = localStorage.getItem('surgeiq_users_db');
+    const usersDb = existingRaw ? JSON.parse(existingRaw) : {};
+    
+    if (usersDb[resetEmail]) {
+      usersDb[resetEmail].password = newPassword;
+      localStorage.setItem('surgeiq_users_db', JSON.stringify(usersDb));
+      
+      setStatus('success');
+      setTimeout(() => {
+        setTab('login');
+        setLoginEmail(resetEmail);
+        setLoginPassword('');
+        setNewPassword('');
+        setConfirmNewPassword('');
+        setForgotEmail('');
+        setStatus('idle');
+      }, 1500);
+    } else {
+      setStatus('idle');
+      setGlobalError('Something went wrong. Please try again.');
     }
   };
 
@@ -203,9 +283,17 @@ export const AuthModal = ({ open, onClose }) => {
                     </motion.div>
                     <div>
                       <h3 className="text-xl font-display font-bold text-white mb-1">
-                        {tab === 'login' ? 'Welcome back!' : 'Account created!'}
+                        {tab === 'reset-new' 
+                          ? 'Password updated!' 
+                          : tab === 'login' 
+                            ? 'Welcome back!' 
+                            : 'Account created!'}
                       </h3>
-                      <p className="text-zinc-500 text-sm">Signing you in to SurgeIQ…</p>
+                      <p className="text-zinc-500 text-sm">
+                        {tab === 'reset-new' 
+                          ? 'Your password was successfully reset.' 
+                          : 'Signing you in to SurgeIQ…'}
+                      </p>
                     </div>
                   </motion.div>
                 ) : (
@@ -231,26 +319,43 @@ export const AuthModal = ({ open, onClose }) => {
                     </div>
 
                     {/* ── Tab switcher ── */}
-                    <div className="px-6 pt-5 pb-4">
-                      <div className="relative flex bg-white/[0.04] border border-white/8 rounded-2xl p-1">
-                        <motion.div
-                          layout
-                          className="absolute inset-y-1 rounded-xl bg-[#1DB954]/15 border border-[#1DB954]/30"
-                          style={{ width: 'calc(50% - 4px)', left: tab === 'login' ? '4px' : 'calc(50%)' }}
-                          transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                        />
-                        {['login', 'signup'].map(t => (
-                          <button
-                            key={t}
-                            onClick={() => switchTab(t)}
-                            className={`relative z-10 flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-xl transition-colors duration-200 cursor-pointer
-                              ${tab === t ? 'text-[#1DB954]' : 'text-zinc-500 hover:text-zinc-300'}`}
-                          >
-                            {t === 'login' ? 'Sign In' : 'Sign Up'}
-                          </button>
-                        ))}
+                    {['login', 'signup'].includes(tab) && (
+                      <div className="px-6 pt-5 pb-4">
+                        <div className="relative flex bg-white/[0.04] border border-white/8 rounded-2xl p-1">
+                          <motion.div
+                            layout
+                            className="absolute inset-y-1 rounded-xl bg-[#1DB954]/15 border border-[#1DB954]/30"
+                            style={{ width: 'calc(50% - 4px)', left: tab === 'login' ? '4px' : 'calc(50%)' }}
+                            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                          />
+                          {['login', 'signup'].map(t => (
+                            <button
+                              key={t}
+                              onClick={() => switchTab(t)}
+                              className={`relative z-10 flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-xl transition-colors duration-200 cursor-pointer
+                                ${tab === t ? 'text-[#1DB954]' : 'text-zinc-500 hover:text-zinc-300'}`}
+                            >
+                              {t === 'login' ? 'Sign In' : 'Sign Up'}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    )}
+
+                    {/* ── Forgot/Reset Header ── */}
+                    {(tab === 'forgot' || tab === 'reset-new') && (
+                      <div className="px-6 pt-5 pb-2 text-center">
+                        <h3 className="text-base font-display font-bold text-white uppercase tracking-wider">
+                          {tab === 'forgot' ? 'Recover Password' : 'Set New Password'}
+                        </h3>
+                        <p className="text-zinc-500 text-xs mt-1">
+                          {tab === 'forgot' 
+                            ? 'Enter your registered email to reset your password' 
+                            : `Choose a secure password for ${resetEmail}`
+                          }
+                        </p>
+                      </div>
+                    )}
 
                     {/* ── Forms ── */}
                     <div className="px-6 pb-6">
@@ -288,6 +393,16 @@ export const AuthModal = ({ open, onClose }) => {
                               }
                             />
 
+                            <div className="flex justify-end px-1">
+                              <button
+                                type="button"
+                                onClick={() => switchTab('forgot')}
+                                className="text-[11px] text-[#1DB954] hover:text-[#1ed760] font-semibold transition-colors cursor-pointer"
+                              >
+                                Forgot password?
+                              </button>
+                            </div>
+
                             {globalError && (
                               <motion.p
                                 initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
@@ -324,7 +439,7 @@ export const AuthModal = ({ open, onClose }) => {
                               </button>
                             </p>
                           </motion.form>
-                        ) : (
+                        ) : tab === 'signup' ? (
                           <motion.form
                             key="signup-form"
                             initial={{ opacity: 0, x: 12 }}
@@ -439,9 +554,108 @@ export const AuthModal = ({ open, onClose }) => {
                               </button>
                             </p>
                           </motion.form>
+                        ) : tab === 'forgot' ? (
+                          <motion.form
+                            key="forgot-form"
+                            initial={{ opacity: 0, x: 12 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -12 }}
+                            transition={{ duration: 0.2 }}
+                            onSubmit={handleForgotSubmit}
+                            className="space-y-4"
+                          >
+                            <FloatField
+                              label="Email address"
+                              type="email"
+                              value={forgotEmail}
+                              onChange={setForgotEmail}
+                              error={forgotError}
+                              autoComplete="email"
+                            />
+
+                            <button
+                              type="submit"
+                              disabled={status === 'loading'}
+                              className="w-full py-3 rounded-2xl bg-[#1DB954] text-black font-display font-bold text-sm
+                                         hover:bg-[#1ed760] active:scale-95 transition-all duration-200 cursor-pointer
+                                         disabled:opacity-60 disabled:cursor-not-allowed
+                                         shadow-[0_0_24px_rgba(29,185,84,0.25)] hover:shadow-[0_0_32px_rgba(29,185,84,0.4)]
+                                         flex items-center justify-center gap-2 mt-2"
+                            >
+                              {status === 'loading' ? (
+                                <span className="flex items-center gap-2">
+                                  <span className="w-4 h-4 rounded-full border-2 border-black/30 border-t-black animate-spin" />
+                                  Verifying email…
+                                </span>
+                              ) : (
+                                <span className="flex items-center gap-2">Verify Email <ArrowRight size={15} /></span>
+                              )}
+                            </button>
+
+                            <p className="text-center text-xs text-zinc-600 pt-1">
+                              Remember your password?{' '}
+                              <button type="button" onClick={() => switchTab('login')}
+                                className="text-[#1DB954] hover:text-[#1ed760] font-semibold cursor-pointer">
+                                Back to Sign In
+                              </button>
+                            </p>
+                          </motion.form>
+                        ) : (
+                          <motion.form
+                            key="reset-new-form"
+                            initial={{ opacity: 0, x: 12 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -12 }}
+                            transition={{ duration: 0.2 }}
+                            onSubmit={handleResetNewSubmit}
+                            className="space-y-3"
+                          >
+                            <FloatField
+                              label="New Password"
+                              type="password"
+                              value={newPassword}
+                              onChange={setNewPassword}
+                              error={resetErrors.password}
+                              autoComplete="new-password"
+                            />
+                            <FloatField
+                              label="Confirm New Password"
+                              type="password"
+                              value={confirmNewPassword}
+                              onChange={setConfirmNewPassword}
+                              error={resetErrors.confirm}
+                              autoComplete="new-password"
+                            />
+
+                            {globalError && (
+                              <p className="text-xs text-red-400 flex items-center gap-1.5 px-1">
+                                <AlertCircle size={12} /> {globalError}
+                              </p>
+                            )}
+
+                            <button
+                              type="submit"
+                              disabled={status === 'loading'}
+                              className="w-full py-3 rounded-2xl bg-[#1DB954] text-black font-display font-bold text-sm
+                                         hover:bg-[#1ed760] active:scale-95 transition-all duration-200 cursor-pointer
+                                         disabled:opacity-60 disabled:cursor-not-allowed
+                                         shadow-[0_0_24px_rgba(29,185,84,0.25)] hover:shadow-[0_0_32px_rgba(29,185,84,0.4)]
+                                         flex items-center justify-center gap-2 mt-2"
+                            >
+                              {status === 'loading' ? (
+                                <span className="flex items-center gap-2">
+                                  <span className="w-4 h-4 rounded-full border-2 border-black/30 border-t-black animate-spin" />
+                                  Updating password…
+                                </span>
+                              ) : (
+                                <span className="flex items-center gap-2">Update Password <ArrowRight size={15} /></span>
+                              )}
+                            </button>
+                          </motion.form>
                         )}
                       </AnimatePresence>
                     </div>
+
                   </motion.div>
                 )}
               </AnimatePresence>

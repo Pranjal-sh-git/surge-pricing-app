@@ -51,14 +51,17 @@ export const RideAppUI = ({
   }, [setDistance]);
 
   useEffect(() => {
-    if (distance <= 0) return;
+    if (distance <= 0 || !pickupCoords || !dropoffCoords) {
+      setHasResult(false);
+      return;
+    }
     const t = setTimeout(async () => {
       const ok = await fetchSurgeEstimate();
       if (ok) setHasResult(true);
     }, 350);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [demand, distance, weather, simulateRain, cabType, rideTier]);
+  }, [demand, distance, weather, simulateRain, cabType, rideTier, pickupCoords, dropoffCoords]);
 
   const handleCheck = async () => {
     const ok = await fetchSurgeEstimate();
@@ -200,34 +203,36 @@ export const RideAppUI = ({
             <div className="flex-shrink-0 border-t border-white/5 bg-[#111]/40">
 
               {/* Cab Operator & Category Selection */}
-              <div className="px-3 pt-2 pb-1.5 border-b border-white/[0.04] grid grid-cols-2 gap-2">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[8px] text-gray-500 uppercase tracking-wider font-bold">Operator</label>
-                  <select
-                    value={cabType}
-                    onChange={(e) => setCabType(parseInt(e.target.value))}
-                    className="bg-white/[0.03] border border-white/5 text-xs text-white rounded-lg px-2 py-1.5 focus:outline-none focus:border-spotify-green/50 cursor-pointer"
-                  >
-                    <option value={0} className="bg-[#181818]">Ola</option>
-                    <option value={1} className="bg-[#181818]">Uber India</option>
-                  </select>
+              {activeMode === 'cab' && (
+                <div className="px-3 pt-2 pb-1.5 border-b border-white/[0.04] grid grid-cols-2 gap-2">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[8px] text-gray-500 uppercase tracking-wider font-bold">Operator</label>
+                    <select
+                      value={cabType}
+                      onChange={(e) => setCabType(parseInt(e.target.value))}
+                      className="bg-white/[0.03] border border-white/5 text-xs text-white rounded-lg px-2 py-1.5 focus:outline-none focus:border-spotify-green/50 cursor-pointer"
+                    >
+                      <option value={0} className="bg-[#181818]">Ola</option>
+                      <option value={1} className="bg-[#181818]">Uber India</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[8px] text-gray-500 uppercase tracking-wider font-bold">Category</label>
+                    <select
+                      value={rideTier}
+                      onChange={(e) => setRideTier(parseInt(e.target.value))}
+                      className="bg-white/[0.03] border border-white/5 text-xs text-white rounded-lg px-2 py-1.5 focus:outline-none focus:border-spotify-green/50 cursor-pointer"
+                    >
+                      <option value={0} className="bg-[#181818]">Auto</option>
+                      <option value={1} className="bg-[#181818]">Mini</option>
+                      <option value={2} className="bg-[#181818]">Sedan</option>
+                      <option value={3} className="bg-[#181818]">Prime Sedan</option>
+                      <option value={4} className="bg-[#181818]">Prime SUV</option>
+                      <option value={5} className="bg-[#181818]">Bike</option>
+                    </select>
+                  </div>
                 </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[8px] text-gray-500 uppercase tracking-wider font-bold">Category</label>
-                  <select
-                    value={rideTier}
-                    onChange={(e) => setRideTier(parseInt(e.target.value))}
-                    className="bg-white/[0.03] border border-white/5 text-xs text-white rounded-lg px-2 py-1.5 focus:outline-none focus:border-spotify-green/50 cursor-pointer"
-                  >
-                    <option value={0} className="bg-[#181818]">Auto</option>
-                    <option value={1} className="bg-[#181818]">Mini</option>
-                    <option value={2} className="bg-[#181818]">Sedan</option>
-                    <option value={3} className="bg-[#181818]">Prime Sedan</option>
-                    <option value={4} className="bg-[#181818]">Prime SUV</option>
-                    <option value={5} className="bg-[#181818]">Bike</option>
-                  </select>
-                </div>
-              </div>
+              )}
 
               {/* Demand slider — ultra-compact */}
               <div className="px-3 pt-2 pb-1.5 border-b border-white/[0.04]">
@@ -284,8 +289,8 @@ export const RideAppUI = ({
 
               {/* Active fare summary + action button */}
               <div className="px-3 py-2">
-                {/* Fare summary row (only when results exist) */}
-                {hasResult && activeMode !== 'all' && activeFare > 0 && (
+                {/* Fare summary row */}
+                {activeMode !== 'all' && (
                   <div
                     className="flex items-center justify-between mb-2 px-2.5 py-1.5 rounded-xl border"
                     style={{ background: MODES[activeMode]?.bg || 'rgba(255,255,255,0.04)', borderColor: modeColor + '33' }}
@@ -297,7 +302,7 @@ export const RideAppUI = ({
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      {activeEta && activeEta > 0 && (
+                      {hasResult && activeEta && activeEta > 0 && (
                         <span className="text-[9px] text-gray-500 flex items-center gap-0.5">
                           <Clock size={8} />
                           {activeEta < 60
@@ -306,7 +311,7 @@ export const RideAppUI = ({
                         </span>
                       )}
                       <span className="text-base font-bold font-display" style={{ color: modeColor }}>
-                        ₹{Math.round(activeFare)}
+                        {hasResult && activeFare > 0 ? `₹${Math.round(activeFare)}` : 'N/A'}
                       </span>
                     </div>
                   </div>

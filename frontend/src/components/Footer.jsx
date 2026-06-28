@@ -7,7 +7,7 @@ const footerLinks = [
   { label: 'How It Works',   href: '#story' },
   { label: 'Model Insights', href: '#model-insights' },
   { label: 'Plan Journey',   href: '#ride' },
-  { label: 'API Docs',       href: '#/api-docs' },
+  { label: 'About',          href: '#about' },
   { label: 'Contact',        href: '#contact' },
   { label: 'Error 404',      href: '#/404' },
 ];
